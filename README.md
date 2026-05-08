@@ -47,9 +47,12 @@ The duke3d-go on an experimental branch of retro-go was extended to support:
 - EDuke32-style anim(ations) from tile ranges (duke3d.def `[animtilerange](https://wiki.eduke32.com/wiki/Animtilerange_(DEF))`) => added this
 - ADPCM compressed WAV sound effects
 -
-## Git submodule workflow (eduke32-for-DukeNano3D)
+## Git submodule workflow
 
-This repository tracks the EDuke32 fork as a Git submodule at `eduke32-for-DukeNano3D`.
+This repository tracks the following Git submodules:
+
+- `eduke32-for-DukeNano3D`
+- `retro-go-for-DukeNano3D` (tracks branch `Duke3D-with-fri3d-2026`)
 
 ### Clone with submodules (recommended)
 
@@ -72,17 +75,24 @@ git submodule sync --recursive
 git submodule update --init --recursive
 ```
 
-### Update submodule to latest remote commit
+### Update submodules to latest remote commit on their tracked branches
 
-To move the submodule to the latest commit on its tracked branch (typically `main`):
+To move all submodules to the latest commit of their tracked branch:
+
+```bash
+git submodule update --remote --merge --recursive
+```
+
+Or update only one submodule:
 
 ```bash
 git submodule update --remote --merge eduke32-for-DukeNano3D
+git submodule update --remote --merge retro-go-for-DukeNano3D
 ```
 
-Then commit the updated submodule pointer in the superproject:
+Then commit updated submodule pointers in the superproject:
 
 ```bash
-git add eduke32-for-DukeNano3D
-git commit -m "Update eduke32-for-DukeNano3D submodule"
+git add .gitmodules eduke32-for-DukeNano3D retro-go-for-DukeNano3D
+git commit -m "Update submodules"
 ```
