@@ -1080,11 +1080,9 @@ def main():
 
     zopflipng = None
     if args.zopflipng and not args.pngfolder:
-        zopflipng = Path("/home/user/software/zopfli/zopflipng")
-        if not (zopflipng.exists() and os.access(zopflipng, os.X_OK)):
-            raise FileNotFoundError(
-                "Requested --zopflipng but '/home/user/software/zopfli/zopflipng' was not found or is not executable"
-            )
+        zopflipng = shutil.which("zopflipng")
+        if not zopflipng:
+            raise FileNotFoundError("Requested --zopflipng but tool 'zopflipng' was not found in PATH")
 
     if args.pngfolder and (args.optipng or args.zopflipng):
         print("[info] --pngfolder was provided: skipping --optipng/--zopflipng and using precomputed PNGs as-is")
