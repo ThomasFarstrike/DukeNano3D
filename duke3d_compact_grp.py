@@ -13,13 +13,26 @@ def run(cmd, cwd, check=True):
     subprocess.run(cmd, cwd=cwd, check=check)
 
 def find_tool(script_dir: Path, tool_name: str) -> Path:
-    candidate = script_dir / tool_name
-    if candidate.exists() and os.access(candidate, os.X_OK):
-        return candidate
+    # Search project-local tool locations first so compact.sh keeps working
+    # after repository reshuffles.
+    search_dirs = [
+        script_dir,
+        script_dir / "eduke32-for-DukeNano3D",
+    ]
+
+    for base_dir in search_dirs:
+        candidate = base_dir / tool_name
+        if candidate.exists() and os.access(candidate, os.X_OK):
+            return candidate
+
     which = shutil.which(tool_name)
     if which:
         return Path(which)
-    raise FileNotFoundError(f"Required tool '{tool_name}' not found in {script_dir} or PATH")
+
+    searched = ", ".join(str(p) for p in search_dirs)
+    raise FileNotFoundError(
+        f"Required tool '{tool_name}' not found in local dirs ({searched}) or PATH"
+    )
 
 def collect_files(temp_dir: Path, patterns):
     files = []
