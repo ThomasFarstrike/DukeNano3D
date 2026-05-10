@@ -8,16 +8,16 @@ Tiny versions of Duke Nukem 3D GRP files, for devices with limited storage and R
 
 Original file is the official Duke Nukem 1.3D Shareware, and all "reduction in %" are compared to that original.
 
-| Version | Size in Bytes | Reduction in % | Size in Bytes Zipped | Reduction in % |
+| Version | Size (KiB) | Reduction in % | Size Zipped (KiB) | Reduction in % |
 | --- | --- | --- | --- | --- |
-| DUKE3D_v1.3d_shareware.grp | 11035779 | 0% | 4875659 | 55% |
-| E1L1-6.grp | 4900392 | 55.60% | 3486533 | 68.41% |
-| E1L1-6_compromise.grp | 3753280 | 65.99% | 2578160 | 76.64% |
-| E1L1-6_tiny.grp | 3250261 | 70.55% | 2124110 | 80.75% |
-| E1L1-2_compromise.grp | 2366442 | 78.56% | 1761799 | 84.04% |
-| E1L1_compromise.grp | 2306532 | 79.10% | 1777093 | 83.90% |
-| E1L1_tiny.grp | 1803513 | 83.66% | 1320180 | 88.04% |
-| E1L1_minimal.grp | 1772572 | 83.94% | 1295342 | 88.26% |
+| DUKE3D_v1.3d_shareware.grp | 10777.1 | 0% | 4761.4 | 55% |
+| E1L1-6.grp | 4785.5 | 55.60% | 3404.8 | 68.41% |
+| E1L1-6_compromise.grp | 3665.3 | 65.99% | 2517.7 | 76.64% |
+| E1L1-6_tiny.grp | 3174.1 | 70.55% | 2074.3 | 80.75% |
+| E1L1-2_compromise.grp | 2311.0 | 78.56% | 1720.5 | 84.04% |
+| E1L1_compromise.grp | 2252.5 | 79.10% | 1735.4 | 83.90% |
+| E1L1_tiny.grp | 1761.2 | 83.66% | 1289.2 | 88.04% |
+| E1L1_minimal.grp | 1731.0 | 83.94% | 1265.0 | 88.26% |
 
 ## Required tools
 
