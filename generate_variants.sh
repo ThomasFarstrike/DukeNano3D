@@ -53,6 +53,9 @@ done <<EOF
 $EXCLUDE_CSVS
 EOF
 
+OUTPUT_DIR="outputs"
+mkdir -p "$OUTPUT_DIR"
+
 #python3 duke3d_compact_grp.py --optipng --zopflipng --ultraminimalmenu --pngfolder precalculated_pngs/ --map E1L1.MAP --keep-temp "${EXCLUDE_ARGS[@]}" /tmp/DUKE3D_v1.3d_shareware.grp
 #python3 duke3d_compact_grp.py --optipng --zopflipng --ultraminimalmenu --pngfolder precalculated_pngs/ --map E1L1.MAP --map E1L2.MAP --keep-temp "${EXCLUDE_ARGS[@]}" /tmp/DUKE3D_v1.3d_shareware.grp
 
@@ -66,30 +69,31 @@ EOF
 
 #python3 duke3d_compact_grp.py --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder precalculated_pngs/ --map E1L1.MAP --keep-temp "${EXCLUDE_ARGS[@]}" /tmp/DUKE3D_v1.3d_shareware.grp --output newfile.grp --adpcmwidth 2
 
+
 # All levels, everything included, same quality, just compressed and removing a few unused sounds:
-python3 duke3d_compact_grp.py --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder precalculated_pngs/ --keep-temp /tmp/DUKE3D_v1.3d_shareware.grp --output E1L1-6.grp
-zip -9 E1L1-6.grp.zip E1L1-6.grp
+python3 duke3d_compact_grp.py --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder precalculated_pngs/ --keep-temp /tmp/DUKE3D_v1.3d_shareware.grp --output "$OUTPUT_DIR/E1L1-6.grp"
+zip -j -9 "$OUTPUT_DIR/E1L1-6.grp.zip" "$OUTPUT_DIR/E1L1-6.grp"
 
 # All levels but some compromise:
-python3 duke3d_compact_grp.py --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder precalculated_pngs/ --keep-temp "${EXCLUDE_ARGS[@]}" /tmp/DUKE3D_v1.3d_shareware.grp --adpcmwidth 2 --output E1L1-6_compromise.grp
-zip -9 E1L1-6_compromise.grp.zip E1L1-6_compromise.grp
+python3 duke3d_compact_grp.py --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder precalculated_pngs/ --keep-temp "${EXCLUDE_ARGS[@]}" /tmp/DUKE3D_v1.3d_shareware.grp --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-6_compromise.grp"
+zip -j -9 "$OUTPUT_DIR/E1L1-6_compromise.grp.zip" "$OUTPUT_DIR/E1L1-6_compromise.grp"
 
 # All levels but tiny:
-python3 duke3d_compact_grp.py --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder precalculated_pngs/ --keep-temp "${EXCLUDE_ARGS[@]}" /tmp/DUKE3D_v1.3d_shareware.grp --adpcmwidth 2 --maxsoundsize 5000 --output E1L1-6_tiny.grp
-zip -9 E1L1-6_tiny.grp.zip E1L1-6_tiny.grp
+python3 duke3d_compact_grp.py --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder precalculated_pngs/ --keep-temp "${EXCLUDE_ARGS[@]}" /tmp/DUKE3D_v1.3d_shareware.grp --adpcmwidth 2 --maxsoundsize 5000 --output "$OUTPUT_DIR/E1L1-6_tiny.grp"
+zip -j -9 "$OUTPUT_DIR/E1L1-6_tiny.grp.zip" "$OUTPUT_DIR/E1L1-6_tiny.grp"
 
 # 2 levels with compromise:
-python3 duke3d_compact_grp.py --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder precalculated_pngs/ --keep-temp "${EXCLUDE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP /tmp/DUKE3D_v1.3d_shareware.grp --adpcmwidth 2 --maxsoundsize 15000 --output E1L1-2_compromise.grp
-zip -9 E1L1-2_compromise.grp.zip E1L1-2_compromise.grp
+python3 duke3d_compact_grp.py --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder precalculated_pngs/ --keep-temp "${EXCLUDE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP /tmp/DUKE3D_v1.3d_shareware.grp --adpcmwidth 2 --maxsoundsize 15000 --output "$OUTPUT_DIR/E1L1-2_compromise.grp"
+zip -j -9 "$OUTPUT_DIR/E1L1-2_compromise.grp.zip" "$OUTPUT_DIR/E1L1-2_compromise.grp"
 
 # One level but some compromise:
-python3 duke3d_compact_grp.py --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder precalculated_pngs/ --map E1L1.MAP --keep-temp "${EXCLUDE_ARGS[@]}" /tmp/DUKE3D_v1.3d_shareware.grp  --adpcmwidth 2 --output E1L1_compromise.grp
-zip -9 E1L1_compromise.grp.zip E1L1_compromise.grp
+python3 duke3d_compact_grp.py --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder precalculated_pngs/ --map E1L1.MAP --keep-temp "${EXCLUDE_ARGS[@]}" /tmp/DUKE3D_v1.3d_shareware.grp  --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1_compromise.grp"
+zip -j -9 "$OUTPUT_DIR/E1L1_compromise.grp.zip" "$OUTPUT_DIR/E1L1_compromise.grp"
 
 # One level, tiny:
-python3 duke3d_compact_grp.py --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder precalculated_pngs/ --map E1L1.MAP --keep-temp "${EXCLUDE_ARGS[@]}" /tmp/DUKE3D_v1.3d_shareware.grp  --adpcmwidth 2 --maxsoundsize 5000 --output E1L1_tiny.grp
-zip -9 E1L1_tiny.grp.zip E1L1_tiny.grp
+python3 duke3d_compact_grp.py --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder precalculated_pngs/ --map E1L1.MAP --keep-temp "${EXCLUDE_ARGS[@]}" /tmp/DUKE3D_v1.3d_shareware.grp  --adpcmwidth 2 --maxsoundsize 5000 --output "$OUTPUT_DIR/E1L1_tiny.grp"
+zip -j -9 "$OUTPUT_DIR/E1L1_tiny.grp.zip" "$OUTPUT_DIR/E1L1_tiny.grp"
 
 # Current minimal, just to establish lower bound:
-python3 duke3d_compact_grp.py --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder precalculated_pngs/ --map E1L1.MAP --keep-temp "${EXCLUDE_ARGS[@]}" /tmp/DUKE3D_v1.3d_shareware.grp  --adpcmwidth 2 --maxsoundsize 0 --output E1L1_minimal.grp
-zip -9 E1L1_minimal.grp.zip E1L1_minimal.grp
+python3 duke3d_compact_grp.py --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder precalculated_pngs/ --map E1L1.MAP --keep-temp "${EXCLUDE_ARGS[@]}" /tmp/DUKE3D_v1.3d_shareware.grp  --adpcmwidth 2 --maxsoundsize 0 --output "$OUTPUT_DIR/E1L1_minimal.grp"
+zip -j -9 "$OUTPUT_DIR/E1L1_minimal.grp.zip" "$OUTPUT_DIR/E1L1_minimal.grp"

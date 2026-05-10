@@ -6,9 +6,11 @@ Tiny versions of Duke Nukem 3D GRP files, for devices with limited storage and R
 
 ## Results
 
-Version | Size in bytes | 
+Original file is the official Duke Nukem 1.3D Shareware, and all "reduction in %" are compared to that original.
 
-Original DUKE3D_v1.3d_shareware.grp | 11035779
+| Version | Size in Bytes | Reduction in % | Size in Bytes Zipped | Reduction in % |
+| --- | --- | --- | --- |  --- |
+| Original DUKE3D_v1.3d_shareware.grp | 11035779 | 0% | 4875659 | 55% |
 
 ## How to run
 
