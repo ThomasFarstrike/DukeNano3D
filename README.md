@@ -6,7 +6,6 @@ Tiny versions of Duke Nukem 3D GRP files, for devices with limited storage and R
 
 ## Results
 
-Original file is the official Duke Nukem 1.3D Shareware, and all "reduction in %" are compared to that original.
 
 | Version | Size (KiB) | Reduction in % | Size Zipped (KiB) | Reduction in % |
 | --- | --- | --- | --- | --- |
@@ -18,6 +17,12 @@ Original file is the official Duke Nukem 1.3D Shareware, and all "reduction in %
 | E1L1_compromise.grp | 2252.5 | 79.10% | 1735.4 | 83.90% |
 | E1L1_tiny.grp | 1761.2 | 83.66% | 1289.2 | 88.04% |
 | E1L1_minimal.grp | 1731.0 | 83.94% | 1265.0 | 88.26% |
+
+Notes:
+
+- Original file is the official Duke Nukem 1.3D Shareware, and all "reduction in %" are compared to that original.
+- See `generate_variants.sh' for the exact arguments provided.
+- To save time, the optimized PNGs were created once with `--temp-dir precalculated_pngs/ --keep-temp` (takes around 4 hours) and then reused each time with `--pngfolder precalculated_pngs/`
 
 ## Required tools
 
