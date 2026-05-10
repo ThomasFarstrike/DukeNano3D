@@ -144,9 +144,7 @@ git commit -m "Update submodules"
 
 1) Currently, all the textures of a level are included, because if a texture is is missing, you get an ugly visual "dragging" effect because that area of the screen is not being drawn. But this could be avoided by replacing the texture with a minimal PNG (~200 bytes) that has the correct size and average color of the texture. This would allow a --maxtexturesize option to be created, similar to the existing --maxsoundsize option. Even a --maxtexturesize 300 would then result in a game that's still playable, just less interesting.
 
-2) A lot of textures are not defined in the map but are still used, such as the heads up display textures, the weapons, the boot kick animation, and lots of animations such as the 'ladies', dollar bills etc. Currently, these are all included, even if the included map(s) don't actually use those textures.
-
-Smarter (or manual) analysis of the .CON game logic scripts would allow excluding those.
+2) A lot of textures are not defined in the map but are still used, such as the heads up display textures, the weapons, the boot kick animation, and lots of animations such as the 'ladies', dollar bills etc. Currently, these are all included, even if the included map(s) don't actually use those textures. Smarter (or manual) analysis of the .CON game logic scripts would allow excluding those.
 
 ### Excluding sound effects (.VOC)
 
