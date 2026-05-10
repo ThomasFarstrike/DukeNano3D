@@ -2,7 +2,7 @@
 ![DukeNano3D](DukeNano3D.jpg)
 
 # DukeNano3D
-Tiny versions of Duke Nukem 3D GRP files, for devices with limited storage and RAM like duke3d-go in retro-go on the ESP32 microcontroller.
+Tiny versions of Duke Nukem 3D 1.3D Shareware GRP files, for devices with limited storage and RAM like duke3d-go in retro-go on the ESP32 microcontroller.
 
 ## Results
 
@@ -56,7 +56,7 @@ Run the generated GRP in EDuke32 (from `eduke32-for-DukeNano3D/runit.sh`):
 
 Also see compact.sh and generate_variants.sh for example arguments.
 
-## Work done
+## How it works
 
 The actual work of compressing a GRP file is done by `duke3d_compact_grp.py` which includes:
 
@@ -137,3 +137,21 @@ Then commit updated submodule pointers in the superproject:
 git add .gitmodules eduke32-for-DukeNano3D retro-go-for-DukeNano3D
 git commit -m "Update submodules"
 ```
+
+## Future work
+
+### Excluding textures
+
+1) Currently, all the textures of a level are included, because if a texture is is missing, you get an ugly visual "dragging" effect because that area of the screen is not being drawn. But this could be avoided by replacing the texture with a minimal PNG (~200 bytes) that has the correct size and average color of the texture. This would allow a --maxtexturesize option to be created, similar to the existing --maxsoundsize option. Even a --maxtexturesize 300 would then result in a game that's still playable, just less interesting.
+
+2) A lot of textures are not defined in the map but are still used, such as the heads up display textures, the weapons, the boot kick animation, and lots of animations such as the 'ladies', dollar bills etc. Currently, these are all included, even if the included map(s) don't actually use those textures.
+
+Smarter (or manual) analysis of the .CON game logic scripts would allow excluding those.
+
+### Excluding sound effects (.VOC)
+
+Currently, there's an option to exclude specific .VOC files that are known to be large, or to exclude all .VOC files bigger than N bytes.
+
+But smarter (or manual) .MAP or .CON analysis would allow excluding .VOC files that aren't used in the included maps, or that are rarely used (like some Duke quotes).
+
+
