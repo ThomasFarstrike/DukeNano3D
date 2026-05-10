@@ -10,7 +10,7 @@ Original file is the official Duke Nukem 1.3D Shareware, and all "reduction in %
 
 | Version | Size in Bytes | Reduction in % | Size in Bytes Zipped | Reduction in % |
 | --- | --- | --- | --- | --- |
-| Original DUKE3D_v1.3d_shareware.grp | 11035779 | 0% | 4875659 | 55% |
+| DUKE3D_v1.3d_shareware.grp | 11035779 | 0% | 4875659 | 55% |
 | E1L1-6.grp | 4900392 | 55.60% | 3486533 | 68.41% |
 | E1L1-6_compromise.grp | 3753280 | 65.99% | 2578160 | 76.64% |
 | E1L1-6_tiny.grp | 3250261 | 70.55% | 2124110 | 80.75% |
