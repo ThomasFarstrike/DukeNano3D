@@ -21,7 +21,7 @@ Tiny versions of Duke Nukem 3D 1.3D Shareware GRP files, for devices with limite
 Notes:
 
 - Original file is the official Duke Nukem 1.3D Shareware, and all "reduction in %" are compared to that original.
-- See `generate_variants.sh' for the exact arguments provided.
+- See `generate_variants.sh` for the exact arguments provided.
 - To save time, the optimized PNGs were created once with `--temp-dir precalculated_pngs/ --keep-temp` (takes around 4 hours) and then reused each time with `--pngfolder precalculated_pngs/`
 
 ## Required tools
