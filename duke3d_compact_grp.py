@@ -324,7 +324,7 @@ def looks_like_mid_token(token: str):
     return normalize_con_filename_token(token).endswith(".mid")
 
 
-def determine_required_mid_files_from_user_con(temp_dir: Path, selected_map_name: str):
+def determine_required_mid_files_from_user_con(temp_dir: Path, selected_map_name: str, nomenusongs: bool = False):
     user_con = find_file_case_insensitive(temp_dir, "USER.CON")
     if user_con is None:
         print("[warn] USER.CON not found; keeping all music files")
@@ -384,7 +384,7 @@ def determine_required_mid_files_from_user_con(temp_dir: Path, selected_map_name
 
             current_music_volume = None
 
-    required = set(music_by_volume.get(0, []))
+    required = set() if nomenusongs else set(music_by_volume.get(0, []))
 
     selected_map_name_norm = normalize_con_filename_token(selected_map_name)
     slot = map_to_slot.get(selected_map_name_norm)
@@ -926,7 +926,7 @@ def expand_required_tiles_with_con_precache_ranges(required_tiles, precache_rang
 def main():
     normalized_argv = normalize_case_insensitive_options(
         sys.argv[1:],
-        ["--pngfolder", "--map", "--includeart", "--ultraminimalmenu", "--excludefiles", "--adpcmwav", "--adpcmwidth", "--maxsoundsize"],
+        ["--pngfolder", "--map", "--includeart", "--ultraminimalmenu", "--excludefiles", "--adpcmwav", "--adpcmwidth", "--maxsoundsize", "--nomenusongs"],
     )
 
     parser = argparse.ArgumentParser(description="Re-package Duke Nukem 3D GRP with PNG tiles and duke3d.def")
@@ -1026,6 +1026,11 @@ def main():
         metavar="N",
         type=int,
         help="Exclude .VOC/.WAV files larger than N bytes from the final GRP",
+    )
+    parser.add_argument(
+        "--nomenusongs",
+        action="store_true",
+        help="Exclude menu/title music (MID) files from the repacked GRP to save space",
     )
 
     args = parser.parse_args(normalized_argv)
@@ -1209,16 +1214,16 @@ def main():
 
         required_mid_files = set()
         for selected_map_name in sorted(selected_map_names):
-            map_required_mid_files = determine_required_mid_files_from_user_con(temp_dir, selected_map_name)
+            map_required_mid_files = determine_required_mid_files_from_user_con(temp_dir, selected_map_name, args.nomenusongs)
             if map_required_mid_files is None:
                 required_mid_files = None
                 break
             required_mid_files.update(map_required_mid_files)
 
         if required_mid_files is not None:
+            label = "music files" if args.nomenusongs else "music files (title/end + all selected map tracks)"
             print(
-                f"[info] map-based music filtering: including {len(required_mid_files)} music files "
-                "(title/end + all selected map tracks)"
+                f"[info] map-based music filtering: including {len(required_mid_files)} {label}"
             )
     else:
         print("[warn] No .MAP files found in extracted GRP; skipping map-based tile restriction")
