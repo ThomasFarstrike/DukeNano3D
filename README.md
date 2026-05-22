@@ -1,11 +1,16 @@
-
 ![DukeNano3D](DukeNano3D.jpg)
 
 # DukeNano3D
-Tiny versions of Duke Nukem 3D 1.3D Shareware GRP files, for devices with limited storage and RAM like duke3d-go in retro-go on the ESP32 microcontroller.
+
+Compact Duke Nukem 3D 1.3D Shareware `.grp` variants for constrained targets (for example `duke3d-go` in `retro-go` on ESP32-class devices).
+
+## What this repo does
+
+- Builds reduced-content `.grp` variants from the original shareware GRP.
+- Optionally repacks assets (PNG optimization, audio conversion/compression) for smaller output.
+- Produces ready-to-test variants for EDuke32 and embedded ports.
 
 ## Results
-
 
 | Version | Size (KiB) | Reduction in % | Size Zipped (KiB) | Reduction in % |
 | --- | --- | --- | --- | --- |
@@ -25,17 +30,30 @@ Tiny versions of Duke Nukem 3D 1.3D Shareware GRP files, for devices with limite
 
 Notes:
 
-- Original file is the official Duke Nukem 1.3D Shareware, and all "reduction in %" are compared to that original.
-- See `generate_variants.sh` for the exact arguments provided.
-- To save time, the optimized PNGs were created once with `--temp-dir precalculated_pngs/ --keep-temp` (takes around 4 hours) and then reused each time with `--pngfolder precalculated_pngs/`
+- Baseline is `input/DUKE3D_v1.3d_shareware.grp`.
+- Both "Reduction in %" columns are compared to that same unzipped baseline.
+- See `generate_variants.sh` for exact generation arguments used for named variants.
+- Reusing a prepared PNG cache (`--temp-dir precalculated_pngs/ --keep-temp`, then `--pngfolder precalculated_pngs/`) significantly speeds up repeated runs.
 
-## Required tools
+### Regenerate the table
+
+```bash
+python3 compare_output_to_input_sizes.py
+```
+
+Optional custom paths:
+
+```bash
+python3 compare_output_to_input_sizes.py --input input/DUKE3D_v1.3d_shareware.grp --outputs outputs
+```
+
+## Requirements
 
 Core:
 
 - Python 3
 - EDuke32 tooling: `kextract`, `kgroup`, `arttool`, `mapinfo`
-- ImageMagick `convert`
+- ImageMagick (`convert`)
 
 Optional (depending on flags/workflow):
 
@@ -43,9 +61,9 @@ Optional (depending on flags/workflow):
 - `zopflipng` (for `--zopflipng`)
 - `ffmpeg` (for `--adpcmwav` / `--adpcmwidth` workflows)
 - `adpcm-xq` (for `--adpcmwidth`)
-- `zip` (for making `.grp.zip` files)
+- `zip` (for `.grp.zip` output)
 
-## How to run
+## Quick start
 
 Build compact GRP variants:
 
@@ -53,90 +71,101 @@ Build compact GRP variants:
 python3 duke3d_compact_grp.py
 ```
 
-Run the generated GRP in EDuke32 (from `eduke32-for-DukeNano3D/runit.sh`):
+Use scripted variant generation examples:
+
+```bash
+./compact.sh
+./generate_variants.sh
+```
+
+Run a generated GRP in EDuke32 (example from `eduke32-for-DukeNano3D/runit.sh`):
 
 ```bash
 ./eduke32 -usecwd -g newfile.grp -l2
 ```
 
-Also see compact.sh and generate_variants.sh for example arguments.
-
 ## How it works
 
-The actual work of compressing a GRP file is done by `duke3d_compact_grp.py` which includes:
+`duke3d_compact_grp.py` performs the main pipeline:
 
-- extracting GRP file using EDuke32's kextract
-- extracting TILESNNN.ART files using EDuke32's arttool
-- analysing .MAP files to find out which textures and .MID(i) files it needs
-- converting .pcx texture images to .png using Imagemagick's `convert`
-- compressing .png files using `optipng` and `zopflipng`
-- converting .VOC (raw PCM audio) to .WAV files using `ffmpeg`
-- converting .WAV files to ADPCM-compressed .WAV files using adpcm-xq (which supports 2 to 5-bit width)
-- bundling the files into a new GRP file using EDuke32's kgroup
+- Extracts GRP content using EDuke32 `kextract`.
+- Extracts tile data from `TILESNNN.ART` using `arttool`.
+- Analyzes `.map` files to determine needed textures and MIDI files.
+- Converts `.pcx` textures to `.png` with ImageMagick `convert`.
+- Optionally optimizes PNGs with `optipng` and `zopflipng`.
+- Converts `.voc` audio to `.wav` with `ffmpeg`.
+- Optionally recompresses WAV to ADPCM via `adpcm-xq` (2-5 bit width).
+- Rebuilds the final GRP with EDuke32 `kgroup`.
 
-Optional Zipping of the .grp file is done with a simple `zip -9 out.grp.zip out.grp`
+Optional zipped output uses:
+
+```bash
+zip -9 out.grp.zip out.grp
+```
+
+## Fork-specific notes
 
 ### EDuke32 fork
 
-- already supports PNG textures (duke3d.def `[definetexture](https://wiki.eduke32.com/wiki/Tilefromtexture_(DEF))`)
-- already supports WAV sound effects (duke3d.def `[sound](https://wiki.eduke32.com/wiki/Sound_(DEF))`)
-- already supports anim(ations) from tile ranges (duke3d.def `[animtilerange](https://wiki.eduke32.com/wiki/Animtilerange_(DEF))`)
+Already supports:
 
-- didn't support ADPCM compressed WAV sound effects => added this
+- PNG textures via `duke3d.def` [`definetexture`](https://wiki.eduke32.com/wiki/Tilefromtexture_(DEF))
+- WAV sound effects via `duke3d.def` [`sound`](https://wiki.eduke32.com/wiki/Sound_(DEF))
+- Tile range animation via `duke3d.def` [`animtilerange`](https://wiki.eduke32.com/wiki/Animtilerange_(DEF))
 
-###  duke3d-go
+Added in this fork:
 
-The duke3d-go on an experimental branch of retro-go was extended to support:
+- ADPCM-compressed WAV sound effect support
 
-- EDuke32-style PNG texture override
+### duke3d-go (retro-go branch)
+
+Extended support includes:
+
+- EDuke32-style PNG texture overrides
 - EDuke32-style WAV sound effects
-- EDuke32-style anim(ations) from tile ranges (duke3d.def `[animtilerange](https://wiki.eduke32.com/wiki/Animtilerange_(DEF))`) => added this
-- ADPCM compressed WAV sound effects
--
+- EDuke32-style `animtilerange` handling
+- ADPCM-compressed WAV sound effects
+
 ## Git submodule workflow
 
-This repository tracks the following Git submodules:
+This repository tracks:
 
 - `eduke32-for-DukeNano3D`
-- `retro-go-for-DukeNano3D` (tracks branch `Duke3D-with-fri3d-2026`)
+- `retro-go-for-DukeNano3D` (branch `Duke3D-with-fri3d-2026`)
 
-### Clone with submodules (recommended)
+Clone with submodules (recommended):
 
 ```bash
 git clone --recursive https://github.com/ThomasFarstrike/DukeNano3D.git
 ```
 
-If you already cloned without `--recursive`:
+If already cloned without `--recursive`:
 
 ```bash
 git submodule update --init --recursive
 ```
 
-### Sync submodule URLs/config from `.gitmodules`
-
-Run this if `.gitmodules` changed (for example, after upstream URL updates):
+Sync URL/config after `.gitmodules` updates:
 
 ```bash
 git submodule sync --recursive
 git submodule update --init --recursive
 ```
 
-### Update submodules to latest remote commit on their tracked branches
-
-To move all submodules to the latest commit of their tracked branch:
+Update submodules to latest tracked remote commit:
 
 ```bash
 git submodule update --remote --merge --recursive
 ```
 
-Or update only one submodule:
+Update one submodule only:
 
 ```bash
 git submodule update --remote --merge eduke32-for-DukeNano3D
 git submodule update --remote --merge retro-go-for-DukeNano3D
 ```
 
-Then commit updated submodule pointers in the superproject:
+Commit updated submodule pointers in this superproject:
 
 ```bash
 git add .gitmodules eduke32-for-DukeNano3D retro-go-for-DukeNano3D
@@ -147,12 +176,15 @@ git commit -m "Update submodules"
 
 ### Excluding textures
 
-1) Currently, all the textures of a level are included, because if a texture is is missing, you get an ugly visual "dragging" effect because that area of the screen is not being drawn. But this could be avoided by replacing the texture with a minimal PNG (~200 bytes) that has the correct size and average color of the texture. This would allow a `--maxtexturesize` option to be created, similar to the existing `--maxsoundsize` option. Even a tiny `--maxtexturesize 300` would probably result in a game that's still playable, just less interesting.
+1) Currently, all textures for a selected level set are included. If a required texture is missing, rendering artifacts appear (undrawn areas/"dragging"). One possible approach is to replace large textures with tiny placeholder PNGs (~200 bytes) that preserve dimensions and approximate average color. That could enable a future `--maxtexturesize` option similar to `--maxsoundsize`.
 
-2) A lot of textures are not defined in the map but are still used, such as the heads up display textures, the weapons, the boot kick animation, and lots of animations such as the 'ladies', dollar bills etc. Currently, these are all included, even if the included map(s) don't actually use those textures. Smarter (or manual) analysis of the .CON game logic scripts would allow excluding those.
+2) Some textures are not directly referenced in map sectors/walls but are still required (HUD, weapon sprites, kick animation, decorative animations). Better static analysis of `.con` game logic could identify what can safely be removed.
 
 ### Excluding sound effects
 
-Currently, there's an option `--excludefiles` to exclude specific sound effect files that are known to be large, or `--maxsoundsize` to exclude all sound effect files bigger than N bytes.
+Current options:
 
-But smarter (or manual) .MAP or .CON analysis would allow excluding .VOC files that aren't used in the included maps, or that are rarely used (like some Duke quotes).
+- `--excludefiles` for explicit sound file exclusions
+- `--maxsoundsize` to skip all sound files larger than a threshold
+
+Future improvement: smarter `.map` + `.con` usage analysis to remove unused or rarely used `.voc` assets while preserving gameplay quality.
