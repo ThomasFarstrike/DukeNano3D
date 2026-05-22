@@ -9,14 +9,19 @@ Tiny versions of Duke Nukem 3D 1.3D Shareware GRP files, for devices with limite
 
 | Version | Size (KiB) | Reduction in % | Size Zipped (KiB) | Reduction in % |
 | --- | --- | --- | --- | --- |
-| DUKE3D_v1.3d_shareware.grp | 10777.1 | 0% | 4761.4 | 55% |
-| E1L1-6.grp | 4785.5 | 55.60% | 3404.8 | 68.41% |
-| E1L1-6_compromise.grp | 3665.3 | 65.99% | 2517.7 | 76.64% |
-| E1L1-6_tiny.grp | 3174.1 | 70.55% | 2074.3 | 80.75% |
-| E1L1-2_compromise.grp | 2311.0 | 78.56% | 1720.5 | 84.04% |
-| E1L1_compromise.grp | 2252.5 | 79.10% | 1735.4 | 83.90% |
-| E1L1_tiny.grp | 1761.2 | 83.66% | 1289.2 | 88.04% |
-| E1L1_minimal.grp | 1731.0 | 83.94% | 1265.0 | 88.26% |
+| DUKE3D_v1.3d_shareware.grp | 10777.1 | 0% | 4761.4 | 55.82% |
+| E1L1-6.grp | 4011.1 | 62.78% | 2828.8 | 73.75% |
+| E1L1-6_nearcomplete.grp | 3682.6 | 65.83% | 2533.1 | 76.50% |
+| E1L1-6_compromise.grp | 3392.2 | 68.52% | 2268.6 | 78.95% |
+| E1L1-6_tiny.grp | 3167.1 | 70.61% | 2077.4 | 80.72% |
+| E1L1-2.grp | 2933.9 | 72.78% | 2286.9 | 78.78% |
+| E1L1-3_nearcomplete.grp | 2931.9 | 72.79% | 2172.4 | 79.84% |
+| E1L1-2_nearcomplete.grp | 2605.5 | 75.82% | 1990.6 | 81.53% |
+| E1L1.grp | 2595.3 | 75.92% | 2044.7 | 81.03% |
+| E1L1-2_compromise.grp | 2301.1 | 78.65% | 1723.6 | 84.01% |
+| E1L1_compromise.grp | 1962.5 | 81.79% | 1479.3 | 86.27% |
+| E1L1_tiny.grp | 1751.4 | 83.75% | 1291.6 | 88.02% |
+| E1L1_minimal.grp | 1721.2 | 84.03% | 1267.2 | 88.24% |
 
 Notes:
 
@@ -151,5 +156,3 @@ git commit -m "Update submodules"
 Currently, there's an option `--excludefiles` to exclude specific sound effect files that are known to be large, or `--maxsoundsize` to exclude all sound effect files bigger than N bytes.
 
 But smarter (or manual) .MAP or .CON analysis would allow excluding .VOC files that aren't used in the included maps, or that are rarely used (like some Duke quotes).
-
-
