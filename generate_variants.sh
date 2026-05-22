@@ -5,6 +5,8 @@
 # 0095 is the night sky with stars
 # 0989-0993 are the skyline, replace with something smaller? or something repeating?
 # SHOTGUN7.VOC leave it because it's very important
+# WARAMB21.VOC,40k leave it because it's the intro "Damn those aliens are gonna pay for shooting up my ride"
+# WIND54.VOC is also playing at the start of the game but not that interesting
 EXCLUDE_CSVS=$(cat <<'EOF'
 TILE1102.PNG,some high def image
 TILE2445.PNG,help screen can be omitted in this pack
@@ -33,7 +35,6 @@ AMB81B.VOC,50k
 WIND54.VOC
 WARAMB23.VOC
 WARAMB13.VOC
-WARAMB21.VOC,40k
 FIRE09.VOC,38k
 DSCREM38.VOC,unused
 PAIN13.VOC,unused
