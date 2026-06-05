@@ -945,7 +945,7 @@ def expand_required_tiles_with_con_precache_ranges(required_tiles, precache_rang
 def main():
     normalized_argv = normalize_case_insensitive_options(
         sys.argv[1:],
-        ["--pngfolder", "--map", "--includeart", "--ultraminimalmenu", "--excludefiles", "--adpcmwav", "--adpcmwidth", "--maxsoundsize", "--nomenusongs"],
+        ["--pngfolder", "--map", "--includeart", "--ultraminimalmenu", "--excludefiles", "--adpcmwav", "--adpcmwidth", "--maxsoundsize", "--nomenusongs", "--camerasdestructable"],
     )
 
     parser = argparse.ArgumentParser(description="Re-package Duke Nukem 3D GRP with PNG tiles and duke3d.def")
@@ -1051,6 +1051,14 @@ def main():
         action="store_true",
         help="Exclude menu/title music (MID) files from the repacked GRP to save space",
     )
+    parser.add_argument(
+        "--camerasdestructable",
+        action="store_true",
+        help=(
+            "Patch USER.CON after extraction: change "
+            "'define CAMERASDESTRUCTABLE      NO' to YES"
+        ),
+    )
 
     args = parser.parse_args(normalized_argv)
 
@@ -1151,6 +1159,31 @@ def main():
     # --map animation expansion (arttool info) can resolve tile metadata.
     for art_file in temp_dir.glob("TILES*.ART"):
         art_file.rename(temp_dir / art_file.name.lower())
+
+    # --camerasdestructable: patch USER.CON define before any further processing.
+    if args.camerasdestructable:
+        user_con = find_file_case_insensitive(temp_dir, "USER.CON")
+        if user_con is None:
+            print("[warn] --camerasdestructable: USER.CON not found; skipping patch")
+        else:
+            original_text = user_con.read_text(encoding="utf-8", errors="replace")
+            patched_text = re.sub(
+                r"(?m)^(\s*define\s+CAMERASDESTRUCTABLE\s+)NO(\s*(?://[^\n]*)?)$",
+                r"\1YES\2",
+                original_text,
+                flags=re.IGNORECASE,
+            )
+            if patched_text == original_text:
+                print(
+                    "[warn] --camerasdestructable: 'define CAMERASDESTRUCTABLE      NO' "
+                    "not found in USER.CON; no change made"
+                )
+            else:
+                user_con.write_text(patched_text, encoding="utf-8")
+                print(
+                    f"[info] --camerasdestructable: patched {user_con.name} "
+                    "CAMERASDESTRUCTABLE NO -> YES"
+                )
 
     required_tiles = None
     required_mid_files = None
