@@ -945,7 +945,7 @@ def expand_required_tiles_with_con_precache_ranges(required_tiles, precache_rang
 def main():
     normalized_argv = normalize_case_insensitive_options(
         sys.argv[1:],
-        ["--pngfolder", "--map", "--includeart", "--ultraminimalmenu", "--excludefiles", "--adpcmwav", "--adpcmwidth", "--maxsoundsize", "--nomenusongs", "--camerasdestructable"],
+        ["--pngfolder", "--map", "--includeart", "--ultraminimalmenu", "--excludefiles", "--adpcmwav", "--adpcmwidth", "--maxsoundsize", "--nomenusongs", "--camerasdestructable", "--pngquant"],
     )
 
     parser = argparse.ArgumentParser(description="Re-package Duke Nukem 3D GRP with PNG tiles and duke3d.def")
@@ -974,6 +974,14 @@ def main():
         "--zopflipng",
         action="store_true",
         help="Run zopflipng with fixed high-compression settings on each generated PNG",
+    )
+    parser.add_argument(
+        "--pngquant",
+        action="store_true",
+        help=(
+            "Run ~/software/pngquant --quality 10 --speed 1 --posterize 3 on each generated PNG "
+            "(applied after convert, before zopflipng)"
+        ),
     )
     parser.add_argument(
         "--pngfolder",
@@ -1116,8 +1124,16 @@ def main():
         if not zopflipng:
             raise FileNotFoundError("Requested --zopflipng but tool 'zopflipng' was not found in PATH")
 
-    if args.pngfolder and (args.optipng or args.zopflipng):
-        print("[info] --pngfolder was provided: skipping --optipng/--zopflipng and using precomputed PNGs as-is")
+    pngquant = None
+    if args.pngquant and not args.pngfolder:
+        pngquant = Path.home() / "software" / "pngquant"
+        if not (pngquant.exists() and os.access(pngquant, os.X_OK)):
+            raise FileNotFoundError(
+                f"Requested --pngquant but '{pngquant}' was not found or is not executable"
+            )
+
+    if args.pngfolder and (args.optipng or args.zopflipng or args.pngquant):
+        print("[info] --pngfolder was provided: skipping --optipng/--zopflipng/--pngquant and using precomputed PNGs as-is")
 
     ffmpeg = None
     adpcm_xq = None
@@ -1546,6 +1562,30 @@ def main():
                             print(convert_proc.stderr)
                         if out_png.exists():
                             out_png.unlink()
+                        return 1
+
+                if args.pngquant and not args.pngfolder:
+                    pngquant_proc = subprocess.run(
+                        [
+                            str(pngquant),
+                            "--quality", "10",
+                            "--speed", "1",
+                            "--posterize", "3",
+                            "--ext", ".png",
+                            "--force",
+                            str(out_png),
+                        ],
+                        cwd=temp_dir,
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                    )
+                    if pngquant_proc.returncode != 0:
+                        print(f"[error] pngquant failed for tile {global_tile}; aborting")
+                        if pngquant_proc.stdout:
+                            print(pngquant_proc.stdout)
+                        if pngquant_proc.stderr:
+                            print(pngquant_proc.stderr)
                         return 1
 
                 if args.optipng and not args.pngfolder:
