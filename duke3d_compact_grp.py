@@ -945,7 +945,7 @@ def expand_required_tiles_with_con_precache_ranges(required_tiles, precache_rang
 def main():
     normalized_argv = normalize_case_insensitive_options(
         sys.argv[1:],
-        ["--pngfolder", "--map", "--includeart", "--ultraminimalmenu", "--excludefiles", "--adpcmwav", "--adpcmwidth", "--maxsoundsize", "--nomenusongs", "--camerasdestructable", "--pngquant"],
+        ["--pngfolder", "--map", "--includeart", "--ultraminimalmenu", "--excludefiles", "--adpcmwav", "--adpcmwidth", "--maxsoundsize", "--nomenusongs", "--camerasdestructable", "--pngquant", "--resumetile"],
     )
 
     parser = argparse.ArgumentParser(description="Re-package Duke Nukem 3D GRP with PNG tiles and duke3d.def")
@@ -1067,6 +1067,17 @@ def main():
             "'define CAMERASDESTRUCTABLE      NO' to YES"
         ),
     )
+    parser.add_argument(
+        "--resumetile",
+        metavar="N",
+        type=int,
+        help=(
+            "Resume an interrupted run from tile number N. "
+            "Skips GRP extraction and reuses the existing temp directory; "
+            "tiles already converted (< N) are re-emitted into duke3d.def "
+            "from existing TILE####.PNG files without reprocessing."
+        ),
+    )
 
     args = parser.parse_args(normalized_argv)
 
@@ -1093,14 +1104,22 @@ def main():
 
     temp_dir = (work_dir / args.temp_dir).resolve()
 
-    # Always remove default temp_folder as requested, then remove selected temp dir.
-    default_temp_dir = (work_dir / "temp_folder").resolve()
-    if default_temp_dir.exists():
-        shutil.rmtree(default_temp_dir)
+    resume_tile = args.resumetile if args.resumetile is not None else -1
 
-    if temp_dir.exists():
-        shutil.rmtree(temp_dir)
-    temp_dir.mkdir(parents=True)
+    if resume_tile >= 0:
+        if not temp_dir.exists():
+            print(f"[error] --resumetile: temp directory '{temp_dir}' does not exist; cannot resume")
+            return 1
+        print(f"[info] --resumetile {resume_tile}: reusing existing temp directory, skipping extraction")
+    else:
+        # Always remove default temp_folder as requested, then remove selected temp dir.
+        default_temp_dir = (work_dir / "temp_folder").resolve()
+        if default_temp_dir.exists():
+            shutil.rmtree(default_temp_dir)
+
+        if temp_dir.exists():
+            shutil.rmtree(temp_dir)
+        temp_dir.mkdir(parents=True)
 
     kextract = find_tool(script_dir, "kextract")
     kgroup = find_tool(script_dir, "kgroup")
@@ -1168,16 +1187,17 @@ def main():
             tile_num = int(match.group(1))
             png_sources[tile_num] = png_file
 
-    # Step 1: extract GRP into temp_dir
-    run([str(kextract), str(grp_path), "*"], cwd=temp_dir)
+    if resume_tile < 0:
+        # Step 1: extract GRP into temp_dir
+        run([str(kextract), str(grp_path), "*"], cwd=temp_dir)
 
-    # arttool expects lowercase tiles*.art names; normalize early so
-    # --map animation expansion (arttool info) can resolve tile metadata.
-    for art_file in temp_dir.glob("TILES*.ART"):
-        art_file.rename(temp_dir / art_file.name.lower())
+        # arttool expects lowercase tiles*.art names; normalize early so
+        # --map animation expansion (arttool info) can resolve tile metadata.
+        for art_file in temp_dir.glob("TILES*.ART"):
+            art_file.rename(temp_dir / art_file.name.lower())
 
     # --camerasdestructable: patch USER.CON define before any further processing.
-    if args.camerasdestructable:
+    if args.camerasdestructable and resume_tile < 0:
         user_con = find_file_case_insensitive(temp_dir, "USER.CON")
         if user_con is None:
             print("[warn] --camerasdestructable: USER.CON not found; skipping patch")
@@ -1376,12 +1396,43 @@ def main():
             voc_sound_ids, sound_fields_by_id = build_sound_maps_from_cons(temp_dir)
             emitted_sound_defs = 0
 
+            if resume_tile >= 0:
+                # On resume, WAV files were already produced; just emit their def entries.
+                for wav_file in sorted(temp_dir.glob("*.wav"), key=lambda p: p.name.lower()):
+                    voc_name = wav_file.stem.lower() + ".voc"
+                    replaced_voc_files.add(voc_name)
+                    sound_ids = sorted(voc_sound_ids.get(voc_name, set()))
+                    if not sound_ids:
+                        continue
+                    for sound_id in sound_ids:
+                        sound_fields = sound_fields_by_id.get(sound_id)
+                        if sound_fields:
+                            duke_def.write(
+                                "sound { "
+                                f"id {sound_id} "
+                                f"file {wav_file.name} "
+                                f"minpitch {sound_fields['minpitch']} "
+                                f"maxpitch {sound_fields['maxpitch']} "
+                                f"priority {sound_fields['priority']} "
+                                f"type {sound_fields['type']} "
+                                f"distance {sound_fields['distance']} "
+                                "}\n"
+                            )
+                        else:
+                            duke_def.write(f"sound {{ id {sound_id} file {wav_file.name} }}\n")
+                        emitted_sound_defs += 1
+                if emitted_sound_defs > 0:
+                    duke_def.write("\n")
+                    print(f"[info] --resumetile: re-emitted {emitted_sound_defs} sound entries from existing WAV files")
+
             voc_files = sorted(
                 [p for p in temp_dir.iterdir() if p.is_file() and p.suffix.lower() == ".voc"],
                 key=lambda p: p.name.lower(),
             )
 
             for voc_file in voc_files:
+                if resume_tile >= 0:
+                    break  # skip all VOC conversion on resume
                 if voc_file.name.lower() in excluded_files:
                     continue
                 if args.maxsoundsize is not None and voc_file.stat().st_size > args.maxsoundsize:
@@ -1506,6 +1557,24 @@ def main():
                     continue
                 global_padded = f"{global_tile:04d}"
 
+                # --resumetile: for tiles already processed, re-emit the def entry
+                # from the existing PNG without rerunning convert/pngquant/optipng/zopflipng.
+                if resume_tile >= 0 and global_tile < resume_tile:
+                    out_png = temp_dir / f"TILE{global_padded}.PNG"
+                    if out_png.exists():
+                        xofs, yofs = get_tile_offsets(arttool, temp_dir, global_tile)
+                        if xofs == 0 and yofs == 0:
+                            duke_def.write(f"tilefromtexture {global_tile} {{ file {out_png.name} }}\n")
+                        else:
+                            duke_def.write(
+                                f"tilefromtexture {global_tile} {{ file {out_png.name} xoffset {xofs} yoffset {yofs} }}\n"
+                            )
+                        written_tiles.add(global_tile)
+                        anim_info = get_tile_anim_info(arttool, temp_dir, global_tile)
+                        if anim_info["frames"] > 0 and anim_info["type"] > 0:
+                            anim_def_candidates[global_tile] = anim_info
+                    continue
+
                 local_pcx = temp_dir / f"tile{global_padded}.pcx"
                 if local_pcx.exists():
                     local_pcx.unlink()
@@ -1571,7 +1640,7 @@ def main():
                             "--quality", "10",
                             "--speed", "1",
                             "--posterize", "3",
-                            "--ext", ".png",
+                            "--ext", ".PNG",
                             "--force",
                             str(out_png),
                         ],
@@ -1580,8 +1649,12 @@ def main():
                         capture_output=True,
                         text=True,
                     )
-                    if pngquant_proc.returncode != 0:
-                        print(f"[error] pngquant failed for tile {global_tile}; aborting")
+                    if pngquant_proc.returncode == 99:
+                        # Exit 99: quantised result would fall below the --quality floor;
+                        # pngquant left the original file untouched — continue as-is.
+                        pass
+                    elif pngquant_proc.returncode != 0:
+                        print(f"[error] pngquant failed for tile {global_tile} (exit {pngquant_proc.returncode}); aborting")
                         if pngquant_proc.stdout:
                             print(pngquant_proc.stdout)
                         if pngquant_proc.stderr:
