@@ -945,7 +945,7 @@ def expand_required_tiles_with_con_precache_ranges(required_tiles, precache_rang
 def main():
     normalized_argv = normalize_case_insensitive_options(
         sys.argv[1:],
-        ["--pngfolder", "--map", "--includeart", "--ultraminimalmenu", "--excludefiles", "--adpcmwav", "--adpcmwidth", "--maxsoundsize", "--nomenusongs", "--camerasdestructable", "--pngquant", "--resumetile"],
+        ["--pngfolder", "--map", "--includeart", "--ultraminimalmenu", "--excludefiles", "--adpcmwav", "--adpcmwidth", "--maxsoundsize", "--nomenusongs", "--camerasdestructable", "--pngquant", "--pngiterations", "--resumetile"],
     )
 
     parser = argparse.ArgumentParser(description="Re-package Duke Nukem 3D GRP with PNG tiles and duke3d.def")
@@ -981,6 +981,16 @@ def main():
         help=(
             "Run ~/software/pngquant --quality 10 --speed 1 --posterize 3 on each generated PNG "
             "(applied after convert, before zopflipng)"
+        ),
+    )
+    parser.add_argument(
+        "--pngiterations",
+        metavar="N",
+        type=int,
+        help=(
+            "Repeat the pngquant+optipng+zopflipng cycle N times on each generated PNG. "
+            "Requires --pngquant. Each iteration runs pngquant, then optipng (if --optipng), "
+            "then zopflipng (if --zopflipng)."
         ),
     )
     parser.add_argument(
@@ -1142,6 +1152,12 @@ def main():
         zopflipng = shutil.which("zopflipng")
         if not zopflipng:
             raise FileNotFoundError("Requested --zopflipng but tool 'zopflipng' was not found in PATH")
+
+    if args.pngiterations is not None:
+        if args.pngiterations < 1:
+            parser.error("--pngiterations N requires N >= 1")
+        if not args.pngquant:
+            parser.error("--pngiterations requires --pngquant")
 
     pngquant = None
     if args.pngquant and not args.pngfolder:
@@ -1634,34 +1650,78 @@ def main():
                         return 1
 
                 if args.pngquant and not args.pngfolder:
-                    pngquant_proc = subprocess.run(
-                        [
-                            str(pngquant),
-                            "--quality", "10",
-                            "--speed", "1",
-                            "--posterize", "3",
-                            "--ext", ".PNG",
-                            "--force",
-                            str(out_png),
-                        ],
-                        cwd=temp_dir,
-                        check=False,
-                        capture_output=True,
-                        text=True,
-                    )
-                    if pngquant_proc.returncode == 99:
-                        # Exit 99: quantised result would fall below the --quality floor;
-                        # pngquant left the original file untouched — continue as-is.
-                        pass
-                    elif pngquant_proc.returncode != 0:
-                        print(f"[error] pngquant failed for tile {global_tile} (exit {pngquant_proc.returncode}); aborting")
-                        if pngquant_proc.stdout:
-                            print(pngquant_proc.stdout)
-                        if pngquant_proc.stderr:
-                            print(pngquant_proc.stderr)
-                        return 1
+                    for _pngquant_iter in range(args.pngiterations if args.pngiterations is not None else 1):
+                        pngquant_proc = subprocess.run(
+                            [
+                                str(pngquant),
+                                "--quality", "10",
+                                "--speed", "1",
+                                "--posterize", "3",
+                                "--ext", ".PNG",
+                                "--force",
+                                str(out_png),
+                            ],
+                            cwd=temp_dir,
+                            check=False,
+                            capture_output=True,
+                            text=True,
+                        )
+                        if pngquant_proc.returncode == 99:
+                            # Exit 99: quantised result would fall below the --quality floor;
+                            # pngquant left the original file untouched — stop iterating.
+                            break
+                        elif pngquant_proc.returncode != 0:
+                            print(f"[error] pngquant failed for tile {global_tile} (exit {pngquant_proc.returncode}); aborting")
+                            if pngquant_proc.stdout:
+                                print(pngquant_proc.stdout)
+                            if pngquant_proc.stderr:
+                                print(pngquant_proc.stderr)
+                            return 1
 
-                if args.optipng and not args.pngfolder:
+                        if args.optipng:
+                            optipng_iter_proc = subprocess.run(
+                                [optipng, "-o7", str(out_png)],
+                                cwd=temp_dir,
+                                check=False,
+                                capture_output=True,
+                                text=True,
+                            )
+                            if optipng_iter_proc.returncode != 0:
+                                print(f"[error] optipng (pngquant iteration {_pngquant_iter + 1}) failed for tile {global_tile}; aborting")
+                                if optipng_iter_proc.stdout:
+                                    print(optipng_iter_proc.stdout)
+                                if optipng_iter_proc.stderr:
+                                    print(optipng_iter_proc.stderr)
+                                return 1
+
+                        if args.zopflipng:
+                            zopflipng_iter_proc = subprocess.run(
+                                [
+                                    str(zopflipng),
+                                    "--iterations=500",
+                                    "--filters=01234mepb",
+                                    "--lossy_8bit",
+                                    "--lossy_transparent",
+                                    "-y",
+                                    str(out_png),
+                                    str(out_png),
+                                ],
+                                cwd=temp_dir,
+                                check=False,
+                                capture_output=True,
+                                text=True,
+                            )
+                            if zopflipng_iter_proc.returncode != 0:
+                                print(f"[error] zopflipng (pngquant iteration {_pngquant_iter + 1}) failed for tile {global_tile}; aborting")
+                                if zopflipng_iter_proc.stdout:
+                                    print(zopflipng_iter_proc.stdout)
+                                if zopflipng_iter_proc.stderr:
+                                    print(zopflipng_iter_proc.stderr)
+                                return 1
+
+                # Standalone optipng pass: only when --pngquant is not active
+                # (pngquant iterations already include optipng interleaved).
+                if args.optipng and not args.pngfolder and not args.pngquant:
                     optipng_proc = subprocess.run(
                         [optipng, "-o7", str(out_png)],
                         cwd=temp_dir,
@@ -1677,7 +1737,9 @@ def main():
                             print(optipng_proc.stderr)
                         return 1
 
-                if args.zopflipng and not args.pngfolder:
+                # Standalone zopflipng pass: only when --pngquant is not active
+                # (pngquant iterations already include zopflipng interleaved).
+                if args.zopflipng and not args.pngfolder and not args.pngquant:
                     zopflipng_proc = subprocess.run(
                         [
                             str(zopflipng),
