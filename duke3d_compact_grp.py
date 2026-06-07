@@ -1066,7 +1066,7 @@ def main():
         "--adpcmwav",
         action="store_true",
         help=(
-            "Convert each non-excluded .VOC in the extracted GRP to ADPCM IMA WAV "
+            "Convert each .VOC in the extracted GRP to ADPCM IMA WAV "
             "and emit matching sound { id N file name.wav } entries in duke3d.def"
         ),
     )
@@ -1438,10 +1438,24 @@ def main():
                 # On resume, WAV files were already produced; just emit their def entries.
                 for wav_file in sorted(temp_dir.glob("*.wav"), key=lambda p: p.name.lower()):
                     voc_name = wav_file.stem.lower() + ".voc"
-                    replaced_voc_files.add(voc_name)
+                    wav_name = wav_file.name.lower()
+                    if wav_name in excluded_files:
+                        print(
+                            f"[info] --excludefiles: keeping converted {wav_file.name} but skipping sound {{ ... }} def entry"
+                        )
+                        continue
+                    if args.maxsoundsize is not None and wav_file.stat().st_size > args.maxsoundsize:
+                        print(
+                            f"[info] --maxsoundsize: keeping converted {wav_file.name} but skipping sound {{ ... }} def entry "
+                            f"({wav_file.stat().st_size} bytes > {args.maxsoundsize})"
+                        )
+                        continue
+
                     sound_ids = sorted(voc_sound_ids.get(voc_name, set()))
                     if not sound_ids:
                         continue
+
+                    replaced_voc_files.add(voc_name)
                     for sound_id in sound_ids:
                         sound_fields = sound_fields_by_id.get(sound_id)
                         if sound_fields:
@@ -1471,14 +1485,6 @@ def main():
             for voc_file in voc_files:
                 if resume_tile >= 0:
                     break  # skip all VOC conversion on resume
-                if voc_file.name.lower() in excluded_files:
-                    continue
-                if args.maxsoundsize is not None and voc_file.stat().st_size > args.maxsoundsize:
-                    print(
-                        f"[info] --maxsoundsize: skipping {voc_file.name} "
-                        f"({voc_file.stat().st_size} bytes > {args.maxsoundsize})"
-                    )
-                    continue
 
                 wav_name = f"{voc_file.stem.lower()}.wav"
                 wav_path = temp_dir / wav_name
@@ -1537,12 +1543,17 @@ def main():
                             print(adpcm_xq_proc.stderr)
                         return 1
 
+                if voc_file.name.lower() in excluded_files or wav_name in excluded_files:
+                    print(
+                        f"[info] --excludefiles: keeping converted {wav_name} but skipping sound {{ ... }} def entry"
+                    )
+                    continue
+
                 if args.maxsoundsize is not None and wav_path.stat().st_size > args.maxsoundsize:
                     print(
-                        f"[info] --maxsoundsize: dropping converted {wav_name} "
+                        f"[info] --maxsoundsize: keeping converted {wav_name} but skipping sound {{ ... }} def entry "
                         f"({wav_path.stat().st_size} bytes > {args.maxsoundsize})"
                     )
-                    wav_path.unlink(missing_ok=True)
                     continue
 
                 sound_ids = sorted(voc_sound_ids.get(voc_file.name.lower(), set()))
@@ -1785,6 +1796,9 @@ def main():
                         if zopflipng_proc.stderr:
                             print(zopflipng_proc.stderr)
                         return 1
+
+                if out_png.name.lower() in excluded_files:
+                    continue
 
                 raw_size = get_tile_raw_size(arttool, temp_dir, global_tile)
                 png_size = out_png.stat().st_size
