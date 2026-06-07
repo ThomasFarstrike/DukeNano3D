@@ -1164,11 +1164,39 @@ def expand_required_tiles_with_con_spawn_dependencies(required_tiles, temp_dir: 
     return expanded
 
 
+def _format_tile_with_name(tile: int, names_by_tile: dict):
+    names = names_by_tile.get(tile)
+    if names:
+        return f"{tile}({names[0]})"
+    return str(tile)
+
+
+def print_runtime_spawn_dependency_report(temp_dir: Path):
+    defines = build_tile_defines_from_cons(temp_dir)
+    dependencies = build_runtime_spawn_tile_dependencies(temp_dir)
+
+    names_by_tile = defaultdict(list)
+    for name, tile in defines.items():
+        if tile >= 0:
+            names_by_tile[tile].append(name.upper())
+    for tile in names_by_tile:
+        names_by_tile[tile].sort()
+
+    print(f"[debug] runtime spawn dependencies: {len(dependencies)} trigger tiles")
+    for trigger_tile in sorted(dependencies):
+        spawned_tiles = sorted(dependencies[trigger_tile])
+        spawned_label = ", ".join(_format_tile_with_name(t, names_by_tile) for t in spawned_tiles)
+        print(
+            f"[debug]   trigger {_format_tile_with_name(trigger_tile, names_by_tile)} "
+            f"-> {spawned_label}"
+        )
+
+
 
 def main():
     normalized_argv = normalize_case_insensitive_options(
         sys.argv[1:],
-        ["--pngfolder", "--map", "--includeart", "--ultraminimalmenu", "--excludefiles", "--includefiles", "--adpcmwav", "--adpcmwidth", "--maxsoundsize", "--nomenusongs", "--camerasdestructable", "--pngquant", "--pngiterations", "--resumetile"],
+        ["--pngfolder", "--map", "--includeart", "--ultraminimalmenu", "--excludefiles", "--includefiles", "--adpcmwav", "--adpcmwidth", "--maxsoundsize", "--nomenusongs", "--camerasdestructable", "--pngquant", "--pngiterations", "--resumetile", "--debug-runtime-spawns"],
     )
 
     parser = argparse.ArgumentParser(description="Re-package Duke Nukem 3D GRP with PNG tiles and duke3d.def")
@@ -1324,6 +1352,14 @@ def main():
             "Skips GRP extraction and reuses the existing temp directory; "
             "tiles already converted (< N) are re-emitted into duke3d.def "
             "from existing TILE####.PNG files without reprocessing."
+        ),
+    )
+    parser.add_argument(
+        "--debug-runtime-spawns",
+        action="store_true",
+        help=(
+            "Print trigger->spawned tile dependencies derived from GAME.CON actor/state "
+            "spawn/debris/guts paths. Useful to audit map-compaction runtime tile coverage."
         ),
     )
 
@@ -1485,6 +1521,9 @@ def main():
                     f"[info] --camerasdestructable: patched {user_con.name} "
                     "CAMERASDESTRUCTABLE NO -> YES"
                 )
+
+    if args.debug_runtime_spawns:
+        print_runtime_spawn_dependency_report(temp_dir)
 
     required_tiles = None
     required_mid_files = None
