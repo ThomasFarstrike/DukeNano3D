@@ -307,7 +307,25 @@ def parse_excludefiles_arg(value: str):
         raise argparse.ArgumentTypeError(
             "Expected comma-separated filenames, e.g. TILES3280.PNG,TILES3281.PNG"
         )
-    return [p.lower() for p in parts]
+
+    normalized = set()
+    for part in parts:
+        name = part.lower()
+        stem, suffix = os.path.splitext(name)
+
+        if suffix == ".pcx":
+            normalized.add(f"{stem}.png")
+            continue
+
+        if suffix == ".voc":
+            normalized.add(name)
+            normalized.add(f"{stem}.wav")
+            continue
+
+        # Includes direct .wav excludes as-is.
+        normalized.add(name)
+
+    return sorted(normalized)
 
 
 def strip_con_line_comment(line: str):
@@ -1029,7 +1047,11 @@ def main():
         metavar="FILE1,FILE2,...",
         action="append",
         type=parse_excludefiles_arg,
-        help="Exclude one or more filenames from the final GRP (comma-separated, repeatable), e.g. --excludefiles TILES3280.PNG",
+        help=(
+            "Exclude one or more filenames from the final GRP (comma-separated, repeatable). "
+            "Special handling: .pcx excludes same basename as .png, and .voc excludes both .voc and .wav. "
+            "Example: --excludefiles TILES3280.PCX,SHOTGUN.VOC"
+        ),
     )
     parser.add_argument(
         "--debug-tiles",
