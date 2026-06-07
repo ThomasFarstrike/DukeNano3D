@@ -23,6 +23,7 @@ TILE3280.PNG,end story text
 TILE3290.PNG,spaceship picture1
 TILE3291.PNG,spaceship picture2
 TILE3292.PNG,end story picture and text
+GRABBAG.VOC,300k title song that is also included as midi
 BONUS.VOC,274k
 BARMUSIC.VOC,70k
 !PRISON.VOC,
@@ -52,18 +53,34 @@ done <<EOF
 $EXCLUDE_CSVS
 EOF
 
+# from full 1.3:
+#flyby.voc,35K flying by shotgun shooters
+
+# these are around 200KB:
 INCLUDE_CSVS=$(cat <<'EOF'
-SHOTGUN7.VOC,shotgun sound, important for gameplay
-WARAMB21.VOC,40k but leave it because it's the intro "Damn those aliens are gonna pay for shooting up my ride"
+SHOTGUN7.WAV,8KB shotgun sound is important for gameplay
+WARAMB21.WAV,40k but leave it because it's the intro "Damn those aliens are gonna pay for shooting up my ride"
+BOMBEXPL.WAV,20K bomb explosion used for rocket launcher or spaceship crash?
+AHMUCH03.WAV,20K much better peeing sound
+HAIL01.VOC,19K hail to the king baby
+WAITIN03.WAV,16K what are you waiting for christmas
+DIESOB03.WAV,15K die you son of a bitch
+NEEDED03.WAV,ah I needed that duke's - body sounds 16086
+LETGOD01.VOC,let god sort 'em out - duke's body sounds 16172
+GASPS07.WAV,duke in pain - duke's body sounds 16215
 EOF
 )
 
 INCLUDE_ARGS=()
 while IFS= read -r csv; do
+    echo "$csv"
     [ -z "$csv" ] && continue
     filename=$(printf '%s' "$csv" | cut -d',' -f1 | tr -d '[:space:]')
+    echo "$filename"
     [ -z "$filename" ] && continue
-    EXCLUDE_ARGS+=("--includefiles" "$filename")
+    INCLUDE_ARGS+=("--includefiles" "$filename")
+    echo "$INCLUDE_ARGS"
+    echo "${INCLUDE_ARGS[@]}"
 done <<EOF
 $INCLUDE_CSVS
 EOF
@@ -80,7 +97,7 @@ PNGS=precalculated_pngs_shareware_1.3D/
 # See the end
 
 # All levels, nearly complete:
-python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" "$INPUT" --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-6_nearcomplete.grp"
+python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" "$INPUT" --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-6_nearcomplete.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1-6_nearcomplete.grp.zip" "$OUTPUT_DIR/E1L1-6_nearcomplete.grp"
 
 # Some compromise:
@@ -92,20 +109,27 @@ python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpc
 zip -j -9 "$OUTPUT_DIR/E1L1-6_tiny.grp.zip" "$OUTPUT_DIR/E1L1-6_tiny.grp"
 
 
+
 # 3 levels, near complete:
-python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP,E1L3.MAP "$INPUT" --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-3_nearcomplete.grp"
+python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP,E1L3.MAP "$INPUT" --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-3_nearcomplete.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1-3_nearcomplete.grp.zip" "$OUTPUT_DIR/E1L1-3_nearcomplete.grp"
+
+# 3 levels, compromise:
+python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP,E1L3.MAP "$INPUT" --adpcmwidth 2 --maxsoundsize 15000 --output "$OUTPUT_DIR/E1L1-3_compromise.grp"
+zip -j -9 "$OUTPUT_DIR/E1L1-3_compromise.grp.zip" "$OUTPUT_DIR/E1L1-3_compromise.grp"
+
+
 
 # 2 levels but complete, just compressed:
 python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" --map E1L1.MAP,E1L2.MAP "$INPUT" --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-2.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1-2.grp.zip" "$OUTPUT_DIR/E1L1-2.grp"
 
 # 2 levels, near complete:
-python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP "$INPUT" --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-2_nearcomplete.grp"
+python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP "$INPUT" --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-2_nearcomplete.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1-2_nearcomplete.grp.zip" "$OUTPUT_DIR/E1L1-2_nearcomplete.grp"
 
 # 2 levels with compromise:
-python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP "$INPUT" --adpcmwidth 2 --maxsoundsize 15000 --nomenusongs --output "$OUTPUT_DIR/E1L1-2_compromise.grp"
+python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP "$INPUT" --adpcmwidth 2 --maxsoundsize 15000 --nomenusongs --output "$OUTPUT_DIR/E1L1-2_compromise.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1-2_compromise.grp.zip" "$OUTPUT_DIR/E1L1-2_compromise.grp"
 
 
@@ -115,14 +139,14 @@ python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpc
 zip -j -9 "$OUTPUT_DIR/E1L1.grp.zip" "$OUTPUT_DIR/E1L1.grp"
 
 # One level but some compromise:
-python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" --map E1L1.MAP "${EXCLUDE_ARGS[@]}" "$INPUT" --adpcmwidth 2 --maxsoundsize 15000 --nomenusongs --output "$OUTPUT_DIR/E1L1_compromise.grp"
+python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" --map E1L1.MAP "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" "$INPUT" --adpcmwidth 2 --maxsoundsize 15000 --nomenusongs --output "$OUTPUT_DIR/E1L1_compromise.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1_compromise.grp.zip" "$OUTPUT_DIR/E1L1_compromise.grp"
 
 # One level, tiny:
 python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" --map E1L1.MAP "${EXCLUDE_ARGS[@]}" "$INPUT" --adpcmwidth 2 --maxsoundsize 5000 --nomenusongs --output "$OUTPUT_DIR/E1L1_tiny.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1_tiny.grp.zip" "$OUTPUT_DIR/E1L1_tiny.grp"
 
-# Current minimal, just to establish lower bound:
+# Current minimal, no sounds, just to establish lower bound:
 python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" --map E1L1.MAP "${EXCLUDE_ARGS[@]}" "$INPUT" --adpcmwidth 2 --maxsoundsize 0 --nomenusongs --output "$OUTPUT_DIR/E1L1_minimal.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1_minimal.grp.zip" "$OUTPUT_DIR/E1L1_minimal.grp"
 

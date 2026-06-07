@@ -1,0 +1,259 @@
+name_of_sound.voc,type of sound (like weapon or duke health etc),filesize in bytes
+blank.voc,six misc ambience city sounds,34
+snakrm.voc,actor sounds,43
+pbombbnc.voc,weapon sounds,1360
+monitor.voc,warning sounds,1682
+knuckle.voc,duke's body sounds,1700
+goggle12.voc,weapon sounds,1746
+kickhit.voc,weapon sounds,1806
+switch.voc,equipment sounds,1824
+lsrbmbpt.voc,weapon sounds,1926
+getitm19.voc,duke's body sounds,1961
+item15.voc,miscellaneous sounds,1994
+gbelev02.voc,equipment sounds,2028
+poolbal1.voc,warning sounds,2036
+bulithit.voc,weapon sounds,2170
+ductwlk.voc,duke movement sounds,2212
+pain87.VOC,duke's body sounds,2534
+pain54.voc,duke's body sounds,2568
+lsrbmbwn.voc,weapon sounds,2618
+gulp01.voc,duke movement sounds,2712
+alert.voc,warning sounds,3127
+land02.voc,duke movement sounds,3139
+chaingun.voc,actor sounds,3198
+snakatB.voc,actor sounds,3261
+pain93.voc,duke's body sounds,3712
+pistol.voc,weapon sounds,3764
+commsp.voc,actor sounds,3830
+thud.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,3842
+pigrm.voc,actor sounds,3881
+exert.voc,duke health sounds,3895
+clipout.voc,weapon sounds,3909
+pain75.voc,duke's body sounds,4049
+drip3.voc,ambience sounds,4124
+jetp2.VOC,six misc ambience city sounds,4136
+hartbeat.voc,duke health sounds,4295
+pain68.voc,duke's body sounds,4536
+LIZSHIT3.VOC,six misc ambience city sounds,4539
+ricochet.voc,weapon sounds,4683
+pain39.voc,duke movement sounds,4796
+aswtch23.voc,six misc ambience city sounds,4799
+onboard.voc,ambience sounds,4960
+gblasr01.voc,actor sounds,5243
+teleport.voc,duke health sounds,5303
+WPNSEL21.VOC,weapon sounds,5468
+dscrem17.voc,duke's body sounds,5529
+damnit04.voc,duke health sounds,5530
+slidie03.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,5569
+reactor.voc,ambience sounds,5575
+clipin.voc,weapon sounds,5613
+zipper2.voc,six misc ambience city sounds,5637
+projrun.voc,six misc ambience city sounds,5697
+octaat2.voc,actor sounds,5732
+shorted.voc,affect environment sounds,5840
+pigpn.voc,actor sounds,6030
+cool01.voc,duke's body sounds,6298
+wetfeet.voc,duke movement sounds,6652
+damn03.voc,duke health sounds,6782
+COMEON02.voc,duke's body sounds,7031
+BITCHN04.voc,six misc ambience city sounds,7092
+opendoor.voc,miscellaneous sounds,7097
+ventbust.voc,affect environment sounds,7522
+shotgnck.voc,weapon sounds,7812
+jetpaki.voc,actor sounds,7953
+KICKHEAD.VOC,six misc ambience city sounds,8035
+octarg.voc,actor sounds,8120
+rockin02.voc,duke movement sounds,8132
+preddy.voc,actor sounds,8207
+whrsit05.voc,duke's body sounds,8231
+rpgfire.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,8256
+octady.voc,actor sounds,8343
+steamhis.voc,ambience sounds,8359
+HOLYCW01.voc,six misc ambience city sounds,8416
+HOLYSH02.voc,six misc ambience city sounds,8462
+glashevy.voc,affect environment sounds,8663
+glass.voc,affect environment sounds,8674
+geargrnd.voc,ambience sounds,8697
+groovy02.voc,duke's body sounds,8942
+snakatA.voc,actor sounds,9017
+roam67.voc,actor sounds,9180
+grind.voc,six misc ambience city sounds,9276
+gasp.voc,duke's body sounds,9361
+shrink.voc,weapon sounds,9381
+letsrk03.voc,duke movement sounds,9430
+subway.voc,equipment sounds,9453
+GMEOVR05.VOC,six misc ambience city sounds,9558
+jetpakon.voc,duke equipment sounds,9617
+ENGHUM.VOC,actor sounds,9630
+dance01.voc,duke movement sounds,9644
+predrm.voc,actor sounds,9664
+dscrem16.voc,duke's body sounds,9677
+shrinker.voc,weapon sounds,9701
+commpn.voc,actor sounds,9783
+shake2a.voc,duke movement sounds,9819
+slimat.voc,actor sounds,9871
+jetpakof.voc,duke equipment sounds,9980
+ahh04.voc,duke movement sounds,10167
+DMDEATH.VOC,duke health sounds,10553
+dscrem15.voc,duke's body sounds,10642
+squish.voc,common death sounds,10681
+lizspit.voc,actor sounds,10761
+drink18.voc,duke health sounds,10767
+edoor11.voc,miscellaneous sounds,10784
+phonbusy.voc,six misc ambience city sounds,10853
+edoor10.voc,miscellaneous sounds,10969
+predrg.voc,actor sounds,11062
+IMGOOD12.voc,six misc ambience city sounds,11132
+b3rec03g.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,11333
+b2atk01.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,11655
+getsom1a.voc,duke's body sounds,11775
+roam58.voc,actor sounds,11795
+snakpn.voc,actor sounds,11803
+b2pain03.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,11919
+roam06.voc,actor sounds,11920
+catfire.voc,weapon sounds,11959
+snakrg.voc,actor sounds,11967
+FSCRM10.voc,miscellaneous sounds,12070
+TERMIN01.VOC,six misc ambience city sounds,12115
+slhtch01.voc,actor sounds,12137
+pissing.voc,duke's body sounds,12180
+dscrem18.voc,duke health sounds,12210
+PIECE02.voc,six misc ambience city sounds,12340
+pigdy.voc,actor sounds,12403
+bos1pn.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,12518
+predpn.voc,actor sounds,12518
+commrm.voc,actor sounds,12527
+machamb.voc,ambience sounds,12735
+ready2a.voc,duke movement sounds,12741
+wansom4a.voc,duke's body sounds,12800
+slirec06.voc,actor sounds,12819
+bos1rg.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,12864
+splash.voc,affect environment sounds,13014
+slidoor.voc,miscellaneous sounds,13517
+octarm.voc,actor sounds,13536
+happen01.voc,duke health sounds,13719
+roam29.voc,actor sounds,13981
+gbelev01.voc,equipment sounds,14121
+rides09.voc,six misc ambience city sounds,14151
+octapn.voc,actor sounds,14213
+ripem08.voc,duke movement sounds,14287
+gunhit2.voc,six misc ambience city sounds,14711
+hydro22.voc,six misc ambience city sounds,14857
+quake.voc,equipment sounds,15175
+SUKIT01.VOC,six misc ambience city sounds,15327
+name01.voc,six misc ambience city sounds,15412
+INHELL01.VOC,six misc ambience city sounds,15506
+h2orush2.voc,six misc ambience city sounds,15647
+snakdy.voc,actor sounds,15896
+mice3.voc,miscellaneous sounds,15912
+onlyon03.voc,six misc ambience city sounds,16055
+needed03.voc,duke's body sounds,16086
+sliroa02.voc,actor sounds,16099
+LETGOD01.VOC,duke's body sounds,16172
+gasps07.voc,duke's body sounds,16215
+AMESS06.voc,six misc ambience city sounds,16241
+DIESOB03.voc,duke's body sounds,16365
+hydro50.voc,six misc ambience city sounds,16495
+hlidle03.voc,six misc ambience city sounds,16701
+hydro34.voc,six misc ambience city sounds,16733
+BLOWIT01.VOC,six misc ambience city sounds,16754
+scuba.voc,duke equipment sounds,16811
+lookin01.voc,duke movement sounds,17243
+b2atk02.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,17491
+WAITIN03.voc,duke's body sounds,17544
+CTRLRM25.VOC,six misc ambience city sounds,17741
+GOTHRT01.voc,six misc ambience city sounds,17769
+WARAMB29.VOC,six misc ambience city sounds,18103
+compamb.voc,ambience sounds,18209
+b2rec03.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,18307
+thsuk13a.voc,duke health sounds,18400
+news.voc,six misc ambience city sounds,19197
+bos1dy.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,19473
+EATSHT01.VOC,six misc ambience city sounds,19492
+HAIL01.VOC,duke's body sounds,20214
+buckle.VOC,six misc ambience city sounds,20786
+bombexpl.voc,weapon sounds,21020
+pigrg.voc,actor sounds,21349
+secret.voc,six misc ambience city sounds,21393
+adoor2.voc,six misc ambience city sounds,21437
+b3pain04.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,21625
+commat.voc,actor sounds,21709
+adoor1.voc,six misc ambience city sounds,21743
+commrg.voc,actor sounds,21769
+hydro24.voc,six misc ambience city sounds,21857
+vault04.voc,six misc ambience city sounds,22013
+roam98b.voc,six misc ambience city sounds,22046
+hydro40.voc,six misc ambience city sounds,22093
+myself3a.voc,six misc ambience city sounds,22239
+hydro27.voc,six misc ambience city sounds,22297
+ahmuch03.voc,duke's body sounds,22320
+jones04.voc,six misc ambience city sounds,22448
+b3roam01.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,22941
+hydro43.voc,equipment sounds,23031
+doomed16.voc,six misc ambience city sounds,23392
+lani05.voc,six misc ambience city sounds,23476
+chokn12.voc,actor sounds,23523
+b3die03g.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,24101
+QUAKE06.VOC,six misc ambience city sounds,24110
+h2ogrgl2.voc,miscellaneous sounds,24238
+killme.voc,ambience sounds,24419
+WHIPYU01.VOC,six misc ambience city sounds,25904
+commdy.voc,actor sounds,26071
+lava06.voc,six misc ambience city sounds,26414
+octaat1.voc,actor sounds,26749
+con03.voc,six misc ambience city sounds,26836
+lani08.voc,six misc ambience city sounds,26844
+pisses01.voc,duke health sounds,27560
+bubblamb.voc,ambience sounds,29114
+rip01.voc,six misc ambience city sounds,29210
+flush.voc,equipment sounds,29559
+BOOBY04.voc,duke movement sounds,29614
+roam22.voc,six misc ambience city sounds,30360
+DSCREM04.voc,ambience sounds,30563
+FORCE01.VOC,six misc ambience city sounds,30756
+FACE01.VOC,six misc ambience city sounds,31405
+freeze.voc,duke movement sounds,31461
+pay02.voc,six misc ambience city sounds,34223
+2ride06.voc,six misc ambience city sounds,36266
+r&r01.voc,six misc ambience city sounds,36343
+bos1rm.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,36836
+NOBODY01.VOC,six misc ambience city sounds,36937
+duknuk14.voc,duke movement sounds,37069
+DEFEATED.VOC,duke movement sounds,37429
+flyby.voc,weapon sounds,37715
+fire09.voc,common death sounds,38636
+BORN01.VOC,six misc ambience city sounds,39923
+MUSTDIE.voc,duke movement sounds,40373
+WARAMB21.VOC,six misc ambience city sounds,40927
+WARAMB13.VOC,six misc ambience city sounds,42180
+WARAMB23.VOC,six misc ambience city sounds,42467
+wind54.voc,ambience sounds,43594
+b2die03.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,44797
+!boss.voc,duke movement sounds,45621
+amb81b.voc,six misc ambience city sounds,50616
+!pig.voc,actor sounds,50626
+ktitx.voc,miscellaneous sounds,51836
+CHEW05.VOC,six misc ambience city sounds,52255
+shotgun7.voc,actor sounds,52477
+monolith.voc,six misc ambience city sounds,52923
+!prison.voc,six misc ambience city sounds,59851
+laniduk2.voc,six misc ambience city sounds,68419
+CHEER.VOC,six misc ambience city sounds,68525
+headrip3.VOC,six misc ambience city sounds,76171
+barmusic.voc,ambience sounds,77801
+whistle.voc,six misc ambience city sounds,87627
+2bwild.voc,miscellaneous sounds,153467
+bonus.voc,affect environment sounds,274985
+GRABBAG.VOC,six misc ambience city sounds,307945
+b3atk01.voc,definesound slim_pain     slimpn.voc             0   0   3   0   0,
+fan.voc,equipment sounds,
+hlmexhal.voc,duke's body sounds,
+hlminhal.voc,duke's body sounds,
+hover.voc,equipment sounds,
+turrat.voc,actor sounds,
+turrdy.voc,actor sounds,
+turrpn.voc,actor sounds,
+turrrg.voc,actor sounds,
+turrrm.voc,actor sounds,
+vpiss2.voc,six misc ambience city sounds,
+yes.voc,duke movement sounds,
