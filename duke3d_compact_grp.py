@@ -1084,7 +1084,10 @@ def main():
         "--maxsoundsize",
         metavar="N",
         type=int,
-        help="Exclude .VOC/.WAV files larger than N bytes from the final GRP",
+        help=(
+            "Exclude .VOC/.WAV files larger than N bytes from the final GRP. "
+            "With --adpcmwav, size checks use converted .WAV output."
+        ),
     )
     parser.add_argument(
         "--nomenusongs",
@@ -1439,6 +1442,7 @@ def main():
                 for wav_file in sorted(temp_dir.glob("*.wav"), key=lambda p: p.name.lower()):
                     voc_name = wav_file.stem.lower() + ".voc"
                     wav_name = wav_file.name.lower()
+                    replaced_voc_files.add(voc_name)
                     if wav_name in excluded_files:
                         print(
                             f"[info] --excludefiles: keeping converted {wav_file.name} but skipping sound {{ ... }} def entry"
@@ -1543,6 +1547,8 @@ def main():
                             print(adpcm_xq_proc.stderr)
                         return 1
 
+                replaced_voc_files.add(voc_file.name.lower())
+
                 if voc_file.name.lower() in excluded_files or wav_name in excluded_files:
                     print(
                         f"[info] --excludefiles: keeping converted {wav_name} but skipping sound {{ ... }} def entry"
@@ -1579,8 +1585,6 @@ def main():
                         duke_def.write(f"sound {{ id {sound_id} file {wav_name} }}\n")
 
                     emitted_sound_defs += 1
-
-                replaced_voc_files.add(voc_file.name.lower())
 
             if emitted_sound_defs > 0:
                 duke_def.write("\n")
