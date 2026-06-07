@@ -1105,10 +1105,7 @@ def main():
         "--maxsoundsize",
         metavar="N",
         type=int,
-        help=(
-            "Exclude .VOC/.WAV files larger than N bytes from the final GRP. "
-            "With --adpcmwav, size checks use converted .WAV output."
-        ),
+        help="Exclude .VOC/.WAV files larger than N bytes from the final GRP",
     )
     parser.add_argument(
         "--nomenusongs",
@@ -1474,12 +1471,25 @@ def main():
                             f"[info] --excludefiles: keeping converted {wav_file.name} but skipping sound {{ ... }} def entry"
                         )
                         continue
-                    if args.maxsoundsize is not None and wav_file.stat().st_size > args.maxsoundsize:
-                        print(
-                            f"[info] --maxsoundsize: keeping converted {wav_file.name} but skipping sound {{ ... }} def entry "
-                            f"({wav_file.stat().st_size} bytes > {args.maxsoundsize})"
-                        )
-                        continue
+                    if args.maxsoundsize is not None:
+                        source_voc = find_file_case_insensitive(temp_dir, voc_name)
+                        if source_voc is None:
+                            print(
+                                f"[warn] --maxsoundsize: source {voc_name} not found during resume; "
+                                f"falling back to {wav_file.name} size check"
+                            )
+                            if wav_file.stat().st_size > args.maxsoundsize:
+                                print(
+                                    f"[info] --maxsoundsize: keeping converted {wav_file.name} but skipping sound {{ ... }} def entry "
+                                    f"({wav_file.stat().st_size} bytes > {args.maxsoundsize})"
+                                )
+                                continue
+                        elif source_voc.stat().st_size > args.maxsoundsize:
+                            print(
+                                f"[info] --maxsoundsize: keeping converted {wav_file.name} but skipping sound {{ ... }} def entry "
+                                f"(source {source_voc.name}: {source_voc.stat().st_size} bytes > {args.maxsoundsize})"
+                            )
+                            continue
 
                     sound_ids = sorted(voc_sound_ids.get(voc_name, set()))
                     if not sound_ids:
@@ -1581,10 +1591,10 @@ def main():
                     )
                     continue
 
-                if args.maxsoundsize is not None and wav_path.stat().st_size > args.maxsoundsize:
+                if args.maxsoundsize is not None and voc_file.stat().st_size > args.maxsoundsize:
                     print(
                         f"[info] --maxsoundsize: keeping converted {wav_name} but skipping sound {{ ... }} def entry "
-                        f"({wav_path.stat().st_size} bytes > {args.maxsoundsize})"
+                        f"(source {voc_file.name}: {voc_file.stat().st_size} bytes > {args.maxsoundsize})"
                     )
                     continue
 
@@ -1983,11 +1993,31 @@ def main():
         files = [f for f in files if f.name.lower() not in excluded_files]
 
     if args.maxsoundsize is not None:
-        files = [
-            f for f in files
-            if f.suffix.lower() not in {".voc", ".wav"}
-            or f.stat().st_size <= args.maxsoundsize
-        ]
+        if args.adpcmwav:
+            filtered_files = []
+            for f in files:
+                suffix = f.suffix.lower()
+                if suffix not in {".voc", ".wav"}:
+                    filtered_files.append(f)
+                    continue
+
+                if suffix == ".voc":
+                    if f.stat().st_size <= args.maxsoundsize:
+                        filtered_files.append(f)
+                    continue
+
+                source_voc_name = f"{f.stem}.voc"
+                source_voc = find_file_case_insensitive(temp_dir, source_voc_name)
+                check_path = source_voc if source_voc is not None else f
+                if check_path.stat().st_size <= args.maxsoundsize:
+                    filtered_files.append(f)
+            files = filtered_files
+        else:
+            files = [
+                f for f in files
+                if f.suffix.lower() not in {".voc", ".wav"}
+                or f.stat().st_size <= args.maxsoundsize
+            ]
 
     if args.adpcmwav and replaced_voc_files:
         files = [

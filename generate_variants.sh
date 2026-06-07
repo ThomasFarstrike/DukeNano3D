@@ -73,7 +73,8 @@ INPUT=input/DUKE3D_v1.3d_shareware.grp
 OUTPUT_DIR="outputs"
 mkdir -p "$OUTPUT_DIR"
 
-PNGS=precalculated_pngs_full_1.3D/
+#PNGS=precalculated_pngs_full_1.3D/
+PNGS=precalculated_pngs_shareware_1.3D/
 
 # All levels, complete but compressed audio and images:
 # See the end
