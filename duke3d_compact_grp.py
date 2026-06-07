@@ -787,9 +787,9 @@ def expand_required_tiles_with_sprite_precache_ranges(required_tiles):
         {
             "name": "Rubber can explosion rat spawns",
             # GAME.CON state rats is called from RUBBERCAN when hit by RADIUSEXPLOSION.
-            # The RAT sprite tile itself may not appear directly in map data.
+            # Rat sprites use a short runtime frame span that may not appear directly in map data.
             "triggers": {1062},              # RUBBERCAN
-            "tiles": {1267},                 # RAT
+            "tiles": set(range(1267, 1272)), # RAT .. RAT+4
         },
         {
             "name": "Egg hatch slime frames",
