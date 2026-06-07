@@ -803,7 +803,7 @@ def expand_required_tiles_with_sprite_precache_ranges(required_tiles):
             # GAME.CON troophidestate and enemy respawn paths spawn TRANSPORTERSTAR and
             # FRAMEEFFECT1_13CON from LIZTROOP family runtime states.
             "triggers": {1680, 1681, 1715, 1725, 1741, 1744},  # LIZTROOP* variants
-            "tiles": {1630, 3999},          # TRANSPORTERSTAR, FRAMEEFFECT1_13CON
+            "tiles": set(range(1630, 1636)) | {3999},  # TRANSPORTERSTAR..+5 + FRAMEEFFECT1_13CON
         },
         {
             "name": "Lizman random feces spawn",
@@ -998,6 +998,168 @@ def expand_required_tiles_with_con_precache_ranges(required_tiles, precache_rang
         if end_tile is None:
             continue
         expanded.update(range(tile, end_tile + 1))
+
+    return expanded
+
+
+def build_tile_defines_from_cons(temp_dir: Path):
+    defines = {}
+
+    con_files = sorted(
+        [p for p in temp_dir.iterdir() if p.is_file() and p.suffix.lower() == ".con"],
+        key=lambda p: p.name.lower(),
+    )
+
+    for con_file in con_files:
+        with con_file.open("r", encoding="utf-8", errors="replace") as fh:
+            for raw_line in fh:
+                line = strip_con_line_comment(raw_line).strip()
+                if not line:
+                    continue
+
+                tokens = line.split()
+                if len(tokens) < 3 or tokens[0].lower() != "define":
+                    continue
+
+                name = tokens[1].lower()
+                value_token = tokens[2]
+
+                if re.match(r"^-?\d+$", value_token):
+                    defines[name] = int(value_token)
+                    continue
+
+                resolved = defines.get(value_token.lower())
+                if resolved is not None:
+                    defines[name] = resolved
+
+    return defines
+
+
+def build_runtime_spawn_tile_dependencies(temp_dir: Path):
+    game_con = find_file_case_insensitive(temp_dir, "GAME.CON")
+    if game_con is None:
+        return {}
+
+    defines = build_tile_defines_from_cons(temp_dir)
+
+    state_spawns = defaultdict(set)
+    state_calls = defaultdict(set)
+    actor_spawns = defaultdict(set)
+    actor_state_calls = defaultdict(set)
+    actor_actor_calls = defaultdict(set)
+
+    current_state = None
+    current_actor = None
+
+    def add_spawn_token(token: str):
+        tile_id = defines.get(token.lower())
+        if tile_id is None or tile_id < 0:
+            return
+        if current_state is not None:
+            state_spawns[current_state].add(tile_id)
+        elif current_actor is not None:
+            actor_spawns[current_actor].add(tile_id)
+
+    with game_con.open("r", encoding="utf-8", errors="replace") as fh:
+        for raw_line in fh:
+            line = strip_con_line_comment(raw_line).strip()
+            if not line:
+                continue
+
+            tokens = line.split()
+            if not tokens:
+                continue
+
+            keyword = tokens[0].lower()
+            if keyword == "state" and len(tokens) >= 2:
+                current_state = tokens[1].lower()
+                current_actor = None
+            elif keyword == "actor" and len(tokens) >= 2:
+                current_actor = tokens[1].lower()
+                current_state = None
+            elif keyword == "enda":
+                current_actor = None
+            elif keyword == "ends":
+                current_state = None
+
+            for match in re.finditer(r"\b(?:spawn|debris|guts)\s+([A-Za-z_][A-Za-z0-9_]*)", line, flags=re.IGNORECASE):
+                add_spawn_token(match.group(1))
+
+            if current_state is not None:
+                for match in re.finditer(r"\bstate\s+([A-Za-z_][A-Za-z0-9_]*)", line, flags=re.IGNORECASE):
+                    state_calls[current_state].add(match.group(1).lower())
+            elif current_actor is not None:
+                for match in re.finditer(r"\bstate\s+([A-Za-z_][A-Za-z0-9_]*)", line, flags=re.IGNORECASE):
+                    actor_state_calls[current_actor].add(match.group(1).lower())
+                for match in re.finditer(r"\bcactor\s+([A-Za-z_][A-Za-z0-9_]*)", line, flags=re.IGNORECASE):
+                    actor_actor_calls[current_actor].add(match.group(1).lower())
+
+    state_cache = {}
+
+    def collect_state_spawns(state_name: str, visiting: set):
+        cached = state_cache.get(state_name)
+        if cached is not None:
+            return cached
+
+        if state_name in visiting:
+            return set()
+
+        visiting.add(state_name)
+        result = set(state_spawns.get(state_name, set()))
+        for next_state in state_calls.get(state_name, set()):
+            result.update(collect_state_spawns(next_state, visiting))
+        visiting.remove(state_name)
+
+        state_cache[state_name] = result
+        return result
+
+    actor_cache = {}
+
+    def collect_actor_spawns(actor_name: str, visiting: set):
+        cached = actor_cache.get(actor_name)
+        if cached is not None:
+            return cached
+
+        if actor_name in visiting:
+            return set()
+
+        visiting.add(actor_name)
+        result = set(actor_spawns.get(actor_name, set()))
+        for state_name in actor_state_calls.get(actor_name, set()):
+            result.update(collect_state_spawns(state_name, set()))
+        for next_actor in actor_actor_calls.get(actor_name, set()):
+            result.update(collect_actor_spawns(next_actor, visiting))
+        visiting.remove(actor_name)
+
+        actor_cache[actor_name] = result
+        return result
+
+    dependencies = {}
+    actor_names = set(actor_spawns.keys()) | set(actor_state_calls.keys()) | set(actor_actor_calls.keys())
+    for actor_name in actor_names:
+        trigger_tile = defines.get(actor_name)
+        if trigger_tile is None or trigger_tile < 0:
+            continue
+        spawned_tiles = collect_actor_spawns(actor_name, set())
+        if spawned_tiles:
+            dependencies[trigger_tile] = spawned_tiles
+
+    return dependencies
+
+
+def expand_required_tiles_with_con_spawn_dependencies(required_tiles, temp_dir: Path):
+    if not required_tiles:
+        return set(required_tiles)
+
+    dependencies = build_runtime_spawn_tile_dependencies(temp_dir)
+    if not dependencies:
+        return set(required_tiles)
+
+    expanded = set(required_tiles)
+    for tile in list(required_tiles):
+        spawned = dependencies.get(tile)
+        if spawned:
+            expanded.update(spawned)
 
     return expanded
 
@@ -1426,6 +1588,15 @@ def main():
             required_tiles = sprite_precache_tiles
             print(
                 f"[info] map-based tile set: added {sprite_precache_added} sprite runtime-precache tiles "
+                f"(total now {len(required_tiles)})"
+            )
+
+        con_spawn_tiles = expand_required_tiles_with_con_spawn_dependencies(required_tiles, temp_dir)
+        con_spawn_added = len(con_spawn_tiles) - len(required_tiles)
+        if con_spawn_added > 0:
+            required_tiles = con_spawn_tiles
+            print(
+                f"[info] map-based tile set: added {con_spawn_added} CON runtime-spawn tiles "
                 f"(total now {len(required_tiles)})"
             )
 
