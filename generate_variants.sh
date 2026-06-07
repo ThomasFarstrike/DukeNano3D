@@ -4,8 +4,6 @@
 # 0966 is a poster, replace it by something smaller?
 # 0095 is the night sky with stars
 # 0989-0993 are the skyline, replace with something smaller? or something repeating?
-# SHOTGUN7.VOC leave it because it's very important
-# WARAMB21.VOC,40k leave it because it's the intro "Damn those aliens are gonna pay for shooting up my ride"
 # WIND54.VOC is also playing at the start of the game but not that interesting
 EXCLUDE_CSVS=$(cat <<'EOF'
 TILE1102.PNG,some high def image
@@ -54,6 +52,22 @@ done <<EOF
 $EXCLUDE_CSVS
 EOF
 
+INCLUDE_CSVS=$(cat <<'EOF'
+SHOTGUN7.VOC,shotgun sound, important for gameplay
+WARAMB21.VOC,40k but leave it because it's the intro "Damn those aliens are gonna pay for shooting up my ride"
+EOF
+)
+
+INCLUDE_ARGS=()
+while IFS= read -r csv; do
+    [ -z "$csv" ] && continue
+    filename=$(printf '%s' "$csv" | cut -d',' -f1 | tr -d '[:space:]')
+    [ -z "$filename" ] && continue
+    EXCLUDE_ARGS+=("--includefiles" "$filename")
+done <<EOF
+$INCLUDE_CSVS
+EOF
+
 INPUT=input/DUKE3D_v1.3d_shareware.grp
 
 OUTPUT_DIR="outputs"
@@ -69,7 +83,7 @@ python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpc
 zip -j -9 "$OUTPUT_DIR/E1L1-6_nearcomplete.grp.zip" "$OUTPUT_DIR/E1L1-6_nearcomplete.grp"
 
 # Some compromise:
-python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" "$INPUT" --maxsoundsize 15000 --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-6_compromise.grp"
+python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" "$INPUT" --maxsoundsize 15000 --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-6_compromise.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1-6_compromise.grp.zip" "$OUTPUT_DIR/E1L1-6_compromise.grp"
 
 # All levels but tiny:

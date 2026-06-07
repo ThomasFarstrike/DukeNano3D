@@ -328,6 +328,16 @@ def parse_excludefiles_arg(value: str):
     return sorted(normalized)
 
 
+def parse_includefiles_arg(value: str):
+    parts = [Path(p.strip()).name for p in value.split(",") if p.strip()]
+    if not parts:
+        raise argparse.ArgumentTypeError(
+            "Expected comma-separated filenames, e.g. GAME.CON,LOOKUP.DAT"
+        )
+
+    return sorted({part.lower() for part in parts})
+
+
 def strip_con_line_comment(line: str):
     return line.split("//", 1)[0].rstrip("\n")
 
@@ -963,7 +973,7 @@ def expand_required_tiles_with_con_precache_ranges(required_tiles, precache_rang
 def main():
     normalized_argv = normalize_case_insensitive_options(
         sys.argv[1:],
-        ["--pngfolder", "--map", "--includeart", "--ultraminimalmenu", "--excludefiles", "--adpcmwav", "--adpcmwidth", "--maxsoundsize", "--nomenusongs", "--camerasdestructable", "--pngquant", "--pngiterations", "--resumetile"],
+        ["--pngfolder", "--map", "--includeart", "--ultraminimalmenu", "--excludefiles", "--includefiles", "--adpcmwav", "--adpcmwidth", "--maxsoundsize", "--nomenusongs", "--camerasdestructable", "--pngquant", "--pngiterations", "--resumetile"],
     )
 
     parser = argparse.ArgumentParser(description="Re-package Duke Nukem 3D GRP with PNG tiles and duke3d.def")
@@ -1054,6 +1064,17 @@ def main():
         ),
     )
     parser.add_argument(
+        "--includefiles",
+        metavar="FILE1,FILE2,...",
+        action="append",
+        type=parse_includefiles_arg,
+        help=(
+            "Force-include one or more filenames in the final GRP (comma-separated, repeatable). "
+            "Applied at the end of file selection and overrides excludes/filtering options. "
+            "Every listed file must exist in extracted temp dir; otherwise the script aborts."
+        ),
+    )
+    parser.add_argument(
         "--debug-tiles",
         metavar="TILE1,TILE2,...",
         type=parse_tile_numbers_arg,
@@ -1127,6 +1148,11 @@ def main():
     excluded_files = {
         name
         for group in (args.excludefiles or [])
+        for name in group
+    }
+    included_files = {
+        name
+        for group in (args.includefiles or [])
         for name in group
     }
 
@@ -2001,6 +2027,25 @@ def main():
             if f.name not in selected_processed
             or f.name.lower() in included_art_files
         ]
+
+    if included_files:
+        missing_included_files = []
+        forced_included_paths = []
+        for include_name in sorted(included_files):
+            include_path = find_file_case_insensitive(temp_dir, include_name)
+            if include_path is None:
+                missing_included_files.append(include_name)
+            else:
+                forced_included_paths.append(include_path)
+
+        if missing_included_files:
+            print("[error] --includefiles requested file(s) not found in extracted temp dir:")
+            for missing_name in missing_included_files:
+                print(f"[error]   {missing_name}")
+            print("[error] Aborting because --includefiles must resolve every listed file.")
+            return 1
+
+        files.extend(forced_included_paths)
 
     # de-duplicate while preserving order
     files = list(dict.fromkeys(files))
