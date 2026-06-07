@@ -55,19 +55,21 @@ EOF
 
 # from full 1.3:
 #flyby.voc,35K flying by shotgun shooters
+# DIESOB03.WAV,15K die you son of a bitch - only used when boss is killed
 
-# these are around 200KB:
+# sizes below are uncompressed VOC size:
 INCLUDE_CSVS=$(cat <<'EOF'
-SHOTGUN7.WAV,8KB shotgun sound is important for gameplay
-WARAMB21.WAV,40k but leave it because it's the intro "Damn those aliens are gonna pay for shooting up my ride"
-BOMBEXPL.WAV,20K bomb explosion used for rocket launcher or spaceship crash?
+SHOTGUN7.WAV,52KB shotgun sound is important for gameplay
+PAY02.WAV,32k leave it because it's the intro "Damn those aliens are gonna pay for shooting up my ride"
+BOMBEXPL.WAV,20K bomb explosion used for spaceship crash, exploding bottles
 AHMUCH03.WAV,20K much better peeing sound
-HAIL01.VOC,19K hail to the king baby
-WAITIN03.WAV,16K what are you waiting for christmas
-DIESOB03.WAV,15K die you son of a bitch
-NEEDED03.WAV,ah I needed that duke's - body sounds 16086
-LETGOD01.VOC,let god sort 'em out - duke's body sounds 16172
-GASPS07.WAV,duke in pain - duke's body sounds 16215
+HAIL01.WAV,19K hail to the king baby - random taunt
+WAITIN03.WAV,16K what are you waiting for christmas - when inactive
+NEEDED03.WAV,ah I needed that - when low health becomes higher
+LETGOD01.WAV,let god sort 'em out - random taunt
+GASPS07.WAV,duke in pain - 16215
+MICE3.WAV,14K crawling mice - not really needed?
+FIRE09.WAV,9K beginning and helps for feeling hot
 EOF
 )
 
