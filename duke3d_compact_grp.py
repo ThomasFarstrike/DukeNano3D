@@ -792,6 +792,26 @@ def expand_required_tiles_with_sprite_precache_ranges(required_tiles):
             "tiles": {1267},                 # RAT
         },
         {
+            "name": "Egg hatch slime frames",
+            # GAME.CON actor EGG opens and spawns GREENSLIME.
+            # Keep the full GREENSLIME frame span even if no slime sprite is placed in-map.
+            "triggers": {675},               # EGG
+            "tiles": set(range(2370, 2378)),# GREENSLIME .. GREENSLIME+7
+        },
+        {
+            "name": "Trooper hide/respawn teleport effects",
+            # GAME.CON troophidestate and enemy respawn paths spawn TRANSPORTERSTAR and
+            # FRAMEEFFECT1_13CON from LIZTROOP family runtime states.
+            "triggers": {1680, 1681, 1715, 1725, 1741, 1744},  # LIZTROOP* variants
+            "tiles": {1630, 3999},          # TRANSPORTERSTAR, FRAMEEFFECT1_13CON
+        },
+        {
+            "name": "Lizman random feces spawn",
+            # GAME.CON lizthinkstate can spawn FECES from LIZMAN behavior.
+            "triggers": {2120, 2150, 2160, 2165},  # LIZMAN* variants
+            "tiles": {2200},                 # FECES
+        },
+        {
             "name": "Switch on/off partner states (base+1)",
             # From sector.cpp switch handling (REST_SWITCH_CASES + ACCESSSWITCH_CASES + DIPSWITCH_LIKE_CASES)
             "triggers": {130, 132, 134, 136, 138, 140, 162, 164, 166, 168, 170, 712},
