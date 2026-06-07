@@ -1152,6 +1152,12 @@ def main():
         for group in (args.includefiles or [])
         for name in group
     }
+    included_audio_files = set()
+    for include_name in included_files:
+        stem, suffix = os.path.splitext(include_name)
+        if suffix.lower() in {".voc", ".wav"}:
+            included_audio_files.add(f"{stem}.voc")
+            included_audio_files.add(f"{stem}.wav")
 
     work_dir = Path.cwd().resolve()
     script_dir = Path(__file__).resolve().parent
@@ -1465,12 +1471,17 @@ def main():
                 for wav_file in sorted(temp_dir.glob("*.wav"), key=lambda p: p.name.lower()):
                     voc_name = wav_file.stem.lower() + ".voc"
                     wav_name = wav_file.name.lower()
+                    force_include_audio = voc_name in included_audio_files or wav_name in included_audio_files
                     replaced_voc_files.add(voc_name)
-                    if wav_name in excluded_files:
+                    if wav_name in excluded_files and not force_include_audio:
                         print(
                             f"[info] --excludefiles: keeping converted {wav_file.name} but skipping sound {{ ... }} def entry"
                         )
                         continue
+                    if wav_name in excluded_files and force_include_audio:
+                        print(
+                            f"[info] --includefiles: forcing sound {{ ... }} def entry for {wav_file.name} despite --excludefiles"
+                        )
                     if args.maxsoundsize is not None:
                         source_voc = find_file_case_insensitive(temp_dir, voc_name)
                         if source_voc is None:
@@ -1478,18 +1489,28 @@ def main():
                                 f"[warn] --maxsoundsize: source {voc_name} not found during resume; "
                                 f"falling back to {wav_file.name} size check"
                             )
-                            if wav_file.stat().st_size > args.maxsoundsize:
+                            if wav_file.stat().st_size > args.maxsoundsize and not force_include_audio:
                                 print(
                                     f"[info] --maxsoundsize: keeping converted {wav_file.name} but skipping sound {{ ... }} def entry "
                                     f"({wav_file.stat().st_size} bytes > {args.maxsoundsize})"
                                 )
                                 continue
-                        elif source_voc.stat().st_size > args.maxsoundsize:
+                            if wav_file.stat().st_size > args.maxsoundsize and force_include_audio:
+                                print(
+                                    f"[info] --includefiles: forcing sound {{ ... }} def entry for {wav_file.name} despite --maxsoundsize "
+                                    f"({wav_file.stat().st_size} bytes > {args.maxsoundsize})"
+                                )
+                        elif source_voc.stat().st_size > args.maxsoundsize and not force_include_audio:
                             print(
                                 f"[info] --maxsoundsize: keeping converted {wav_file.name} but skipping sound {{ ... }} def entry "
                                 f"(source {source_voc.name}: {source_voc.stat().st_size} bytes > {args.maxsoundsize})"
                             )
                             continue
+                        elif source_voc.stat().st_size > args.maxsoundsize and force_include_audio:
+                            print(
+                                f"[info] --includefiles: forcing sound {{ ... }} def entry for {wav_file.name} despite --maxsoundsize "
+                                f"(source {source_voc.name}: {source_voc.stat().st_size} bytes > {args.maxsoundsize})"
+                            )
 
                     sound_ids = sorted(voc_sound_ids.get(voc_name, set()))
                     if not sound_ids:
@@ -1528,6 +1549,7 @@ def main():
 
                 wav_name = f"{voc_file.stem.lower()}.wav"
                 wav_path = temp_dir / wav_name
+                force_include_audio = voc_file.name.lower() in included_audio_files or wav_name in included_audio_files
 
                 if args.adpcmwidth is None:
                     ffmpeg_proc = subprocess.run(
@@ -1585,18 +1607,27 @@ def main():
 
                 replaced_voc_files.add(voc_file.name.lower())
 
-                if voc_file.name.lower() in excluded_files or wav_name in excluded_files:
+                if (voc_file.name.lower() in excluded_files or wav_name in excluded_files) and not force_include_audio:
                     print(
                         f"[info] --excludefiles: keeping converted {wav_name} but skipping sound {{ ... }} def entry"
                     )
                     continue
+                if (voc_file.name.lower() in excluded_files or wav_name in excluded_files) and force_include_audio:
+                    print(
+                        f"[info] --includefiles: forcing sound {{ ... }} def entry for {wav_name} despite --excludefiles"
+                    )
 
-                if args.maxsoundsize is not None and voc_file.stat().st_size > args.maxsoundsize:
+                if args.maxsoundsize is not None and voc_file.stat().st_size > args.maxsoundsize and not force_include_audio:
                     print(
                         f"[info] --maxsoundsize: keeping converted {wav_name} but skipping sound {{ ... }} def entry "
                         f"(source {voc_file.name}: {voc_file.stat().st_size} bytes > {args.maxsoundsize})"
                     )
                     continue
+                if args.maxsoundsize is not None and voc_file.stat().st_size > args.maxsoundsize and force_include_audio:
+                    print(
+                        f"[info] --includefiles: forcing sound {{ ... }} def entry for {wav_name} despite --maxsoundsize "
+                        f"(source {voc_file.name}: {voc_file.stat().st_size} bytes > {args.maxsoundsize})"
+                    )
 
                 sound_ids = sorted(voc_sound_ids.get(voc_file.name.lower(), set()))
                 if not sound_ids:
