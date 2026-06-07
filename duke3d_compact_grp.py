@@ -785,6 +785,13 @@ def expand_required_tiles_with_sprite_precache_ranges(required_tiles):
             # TOILETBROKE(568), STALLBROKE(572), TOILETWATER..+3(921..924), BROKEFIREHYDRENT(938)
         },
         {
+            "name": "Rubber can explosion rat spawns",
+            # GAME.CON state rats is called from RUBBERCAN when hit by RADIUSEXPLOSION.
+            # The RAT sprite tile itself may not appear directly in map data.
+            "triggers": {1062},              # RUBBERCAN
+            "tiles": {1267},                 # RAT
+        },
+        {
             "name": "Switch on/off partner states (base+1)",
             # From sector.cpp switch handling (REST_SWITCH_CASES + ACCESSSWITCH_CASES + DIPSWITCH_LIKE_CASES)
             "triggers": {130, 132, 134, 136, 138, 140, 162, 164, 166, 168, 170, 712},
