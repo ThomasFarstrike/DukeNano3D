@@ -812,6 +812,12 @@ def expand_required_tiles_with_sprite_precache_ranges(required_tiles):
             "tiles": {2200},                 # FECES
         },
         {
+            "name": "Trash blowing paper frames",
+            # TRASH sprites (newspaper/debris) use a short frame span at runtime.
+            "triggers": {1272},              # TRASH
+            "tiles": set(range(1272, 1279)), # TRASH .. TRASH+6
+        },
+        {
             "name": "Switch on/off partner states (base+1)",
             # From sector.cpp switch handling (REST_SWITCH_CASES + ACCESSSWITCH_CASES + DIPSWITCH_LIKE_CASES)
             "triggers": {130, 132, 134, 136, 138, 140, 162, 164, 166, 168, 170, 712},
