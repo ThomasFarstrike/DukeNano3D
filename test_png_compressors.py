@@ -53,9 +53,9 @@ def run(cmd, desc=""):
 def apply_pngquant(png_path):
     return run([
         str(PNGQUANT),
-        "--quality", "10",
+        "--quality", "50",
         "--speed", "1",
-        "--posterize", "3",
+        "--posterize", "2",
         "--ext", ".PNG",
         "--force",
         str(png_path),

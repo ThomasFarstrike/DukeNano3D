@@ -1698,11 +1698,6 @@ def main():
         help="Only replace tiles when PNG is smaller than raw tile data; keeps ART files in output",
     )
     parser.add_argument(
-        "--optipng",
-        action="store_true",
-        help="Run optipng -o7 on each generated PNG",
-    )
-    parser.add_argument(
         "--zopflipng",
         action="store_true",
         help="Run zopflipng with fixed high-compression settings on each generated PNG",
@@ -1720,8 +1715,8 @@ def main():
         metavar="N",
         type=int,
         help=(
-            "Repeat the pngquant+optipng+zopflipng cycle N times on each generated PNG. "
-            "Requires --pngquant. Each iteration runs pngquant, then optipng (if --optipng), "
+            "Repeat the pngquant+zopflipng cycle N times on each generated PNG. "
+            "Requires --pngquant. Each iteration runs pngquant, "
             "then zopflipng (if --zopflipng)."
         ),
     )
@@ -1932,12 +1927,6 @@ def main():
         if not convert:
             raise FileNotFoundError("Required tool 'convert' (ImageMagick) not found in PATH")
 
-    optipng = None
-    if args.optipng and not args.pngfolder:
-        optipng = shutil.which("optipng")
-        if not optipng:
-            raise FileNotFoundError("Requested --optipng but tool 'optipng' was not found in PATH")
-
     zopflipng = None
     if args.zopflipng and not args.pngfolder:
         zopflipng = shutil.which("zopflipng")
@@ -1958,8 +1947,8 @@ def main():
                 f"Requested --pngquant but '{pngquant}' was not found or is not executable"
             )
 
-    if args.pngfolder and (args.optipng or args.zopflipng or args.pngquant):
-        print("[info] --pngfolder was provided: skipping --optipng/--zopflipng/--pngquant and using precomputed PNGs as-is")
+    if args.pngfolder and (args.zopflipng or args.pngquant):
+        print("[info] --pngfolder was provided: skipping --zopflipng/--pngquant and using precomputed PNGs as-is")
 
     ffmpeg = None
     adpcm_xq = None
@@ -2491,7 +2480,7 @@ def main():
                 global_padded = f"{global_tile:04d}"
 
                 # --resumetile: for tiles already processed, re-emit the def entry
-                # from the existing PNG without rerunning convert/pngquant/optipng/zopflipng.
+                # from the existing PNG without rerunning convert/pngquant/zopflipng.
                 if resume_tile >= 0 and global_tile < resume_tile:
                     out_png = temp_dir / f"TILE{global_padded}.PNG"
                     if out_png.exists():
@@ -2595,22 +2584,6 @@ def main():
                                 print(pngquant_proc.stderr)
                             return 1
 
-                        if args.optipng:
-                            optipng_iter_proc = subprocess.run(
-                                [optipng, "-o7", str(out_png)],
-                                cwd=temp_dir,
-                                check=False,
-                                capture_output=True,
-                                text=True,
-                            )
-                            if optipng_iter_proc.returncode != 0:
-                                print(f"[error] optipng (pngquant iteration {_pngquant_iter + 1}) failed for tile {global_tile}; aborting")
-                                if optipng_iter_proc.stdout:
-                                    print(optipng_iter_proc.stdout)
-                                if optipng_iter_proc.stderr:
-                                    print(optipng_iter_proc.stderr)
-                                return 1
-
                         if args.zopflipng:
                             zopflipng_iter_proc = subprocess.run(
                                 [
@@ -2635,24 +2608,6 @@ def main():
                                 if zopflipng_iter_proc.stderr:
                                     print(zopflipng_iter_proc.stderr)
                                 return 1
-
-                # Standalone optipng pass: only when --pngquant is not active
-                # (pngquant iterations already include optipng interleaved).
-                if args.optipng and not args.pngfolder and not args.pngquant:
-                    optipng_proc = subprocess.run(
-                        [optipng, "-o7", str(out_png)],
-                        cwd=temp_dir,
-                        check=False,
-                        capture_output=True,
-                        text=True,
-                    )
-                    if optipng_proc.returncode != 0:
-                        print(f"[error] optipng failed for tile {global_tile}; aborting")
-                        if optipng_proc.stdout:
-                            print(optipng_proc.stdout)
-                        if optipng_proc.stderr:
-                            print(optipng_proc.stderr)
-                        return 1
 
                 # Standalone zopflipng pass: only when --pngquant is not active
                 # (pngquant iterations already include zopflipng interleaved).
