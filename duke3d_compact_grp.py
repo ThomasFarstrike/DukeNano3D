@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import argparse
+import csv
+import io
 import os
 from pathlib import Path
 import shutil
@@ -495,131 +497,167 @@ def normalize_case_insensitive_options(argv, option_names):
     return normalized
 
 
-def build_runtime_essentials_allowlist():
-    """
-    Runtime-essential tile allowlist for `--map` builds.
+def _read_csv_rows(csv_path: Path):
+    if not csv_path.exists():
+        raise FileNotFoundError(f"Required tile model CSV not found: {csv_path}")
 
-    `mapinfo` only sees direct map picnums. It does not include HUD/view-weapon
-    tiles and several always-needed projectile/FX tiles that are preloaded at runtime
-    """
-    allow = set()
+    raw_lines = csv_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    filtered = [line for line in raw_lines if line.strip() and not line.lstrip().startswith("#")]
+    if not filtered:
+        return []
 
-    # ---------- Player HUD and first-person weapon tiles ----------
-    allow.add(2523)                   # CROSSHAIR
-
-    # Pistol (requested missing range): FIRSTGUN .. FIRSTGUN+6
-    allow.update(range(2524, 2531))   # includes FIRSTGUN and reload sequence
-
-    # Pistol ejected shells
-    allow.update(range(2533, 2535))   # SHELL .. SHELL+1
-
-    # Chaingun view weapon tiles
-    allow.update(range(2536, 2544))   # CHAINGUN .. CHAINGUN+7
-
-    # RPG view weapon tiles
-    allow.update(range(2544, 2547))   # RPGGUN .. RPGGUN+2
-
-    # Freeze cannon view weapon tiles
-    allow.update(range(2548, 2554))   # FREEZE .. FREEZE+5
-
-    # Shrinker/Expander view weapon + crystal frames
-    allow.update(range(2554, 2562))   # SHRINKER-2 .. SHRINKER+5
-
-    # Tripbomb/remote hand sequences
-    allow.update(range(2563, 2569))   # HANDHOLDINGLASER .. HANDHOLDINGACCESS (includes TILE2568)
-    allow.update(range(2570, 2577))   # HANDREMOTE .. HANDREMOTE+6 (includes TILE2576)
-
-    # Shotgun view weapon tiles
-    allow.update(range(2613, 2620))   # SHOTGUN .. SHOTGUN+6
-
-    # Devastator left/right weapon tiles
-    allow.update(range(2510, 2512))   # DEVISTATOR .. DEVISTATOR+1
-
-    # Knee/quick-kick HUD sequence frequently needed in minimal packs
-    allow.update(range(2521, 2523))   # TILE2521 .. TILE2522
-
-    # End-of-level nuke/destruct hand overlay (FIST)
-    allow.add(1640)                   # FIST
-
-    # ---------- Core projectile/FX tiles preloaded by cacheDukeTiles() ----------
-    allow.update(range(0, 61))        # startup baseline tiles 0..60
-
-    allow.update(range(550, 553))     # FOOTPRINTS .. FOOTPRINTS+2
-    allow.update(range(1233, 1236))   # TILE1233 .. TILE1235 (runtime/map-adjacent effects)
-    allow.update(range(1261, 1267))   # TRANSPORTERBEAM .. +5
-    allow.update(range(1332, 1334))   # TILE1332 .. TILE1333 (avoid fallback to TILE1330)
-    allow.update(range(1360, 1381))   # COOLEXPLOSION1 .. +20
-    allow.update(range(1400, 1528))   # TILE1400 .. TILE1527 (reported missing runtime span)
-
-    allow.update(range(1620, 1624))   # BLOOD .. +3
-    allow.add(1625)                   # FIRELASER
-    allow.update(range(1641, 1644))   # FREEZEBLAST .. +2
-    allow.update(range(1646, 1650))   # SHRINKSPARK .. +3
-    allow.update(range(1650, 1654))   # MORTER .. +3
-    allow.update(range(1656, 1660))   # SHRINKEREXPLOSION .. +3
-
-    allow.update(range(1890, 1911))   # EXPLOSION2 .. +20
-
-    allow.update(range(2245, 2270))   # JIBS1 .. JIBS5+4
-    allow.update(range(2270, 2284))   # BURNING .. +13
-    allow.update(range(2286, 2294))   # JIBS6 .. +7
-    allow.update(range(2310, 2324))   # BURNING2 .. +13
-    allow.update(range(2324, 2328))   # CRACKKNUCKLES .. +3
-    allow.update(range(2329, 2333))   # SMALLSMOKE .. +3
-
-    allow.update(range(2400, 2429))   # SCRAP1 .. +28
-    allow.update(range(2448, 2452))   # GROWSPARK .. +3
-
-    allow.update(range(2595, 2599))   # SHOTSPARK1 .. +3
-    allow.update(range(2605, 2612))   # RPG .. RPG+6
-
-    return allow
+    reader = csv.DictReader(io.StringIO("\n".join(filtered)))
+    return list(reader)
 
 
-def build_ultra_minimal_menu_allowlist():
-    """
-    Runtime baseline tile allowlist for `--map` builds.
+def _resolve_single_tile_token(token: str, defines: dict):
+    value = token.strip()
+    if not value:
+        return None
 
-    Source of truth is EDuke32 startup/hud/precache code paths, primarily:
-      - source/duke3d/src/premap.cpp: cacheDukeTiles()
-      - source/duke3d/src/screens.cpp / menus.cpp: crosshair + menu screens
+    if re.match(r"^-?\d+$", value):
+        return int(value)
 
-    Goal: keep the menu set minimal while still including startup/title/menu
-    infrastructure and menu fonts/screens.
-    """
-    allow = set()
+    name_offset_match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)([+-]\d+)?$", value)
+    if not name_offset_match:
+        return None
 
-    # ---------- Menu and font/UI infrastructure ----------
-    allow.update(range(2456, 2491))   # MENUSCREEN .. DUKECAR-1
-    allow.update(range(2813, 2820))   # SPINNINGNUKEICON .. SPINNINGNUKEICON+6
-    allow.update({2820, 2821})        # BIGFNTCURSOR / SMALLFNTCURSOR
-    allow.update(range(2822, 2916))   # STARTALPHANUM .. ENDALPHANUM
-    allow.update(range(2929, 3022))   # BIGALPHANUM-11 .. BIGALPHANUM+81
-    allow.update(range(3072, 3165))   # MINIFONT .. MINIFONT+92
+    base_name = name_offset_match.group(1).lower()
+    base_value = defines.get(base_name)
+    if base_value is None:
+        return None
 
-    # Explicit menu screens drawn outside broad menu ranges.
-    allow.update({
-        1141,             # menu background image (TILE1141.PNG)
-        2445,             # F1HELP
-        2499,             # INGAMEDUKETHREEDEE
-        2503,             # PLUTOPAKSPRITE+2
-        2504, 2505, 2506, # credits backgrounds (2504+cm-MENU_CREDITS)
-        3240,             # BONUSSCREEN
-        3280,             # TEXTSTORY
-        3281,             # LOADSCREEN
-    })
+    offset_token = name_offset_match.group(2)
+    if not offset_token:
+        return base_value
 
-    # ---------- Startup screen overlays (easy to tweak) ----------
-    # These are required for the boot/title startup sequence and its logo overlays.
-    STARTUP_SCREEN_TILES = {
-        2492,  # STARTUP_3D_REALMS_LOGO (TILE2492.PNG)
-        2493,  # STARTUP_DUKE_NUKEM_SCREEN (TILE2493.PNG)
-        2497,  # STARTUP_LOGO_OVERLAY_A (TILE2497.PNG)
-        2498,  # STARTUP_LOGO_OVERLAY_B (TILE2498.PNG)
-    }
-    allow.update(STARTUP_SCREEN_TILES)
+    return base_value + int(offset_token)
 
-    return allow
+
+def _resolve_tile_token_to_set(token: str, defines: dict):
+    value = token.strip()
+    if not value:
+        return set()
+
+    if ".." in value:
+        left, right = value.split("..", 1)
+        start = _resolve_single_tile_token(left, defines)
+        end = _resolve_single_tile_token(right, defines)
+        if start is None or end is None:
+            return set()
+        if end < start:
+            start, end = end, start
+        return set(range(start, end + 1))
+
+    if re.match(r"^-?\d+\s*-\s*-?\d+$", value):
+        left, right = value.split("-", 1)
+        start = _resolve_single_tile_token(left, defines)
+        end = _resolve_single_tile_token(right, defines)
+        if start is None or end is None:
+            return set()
+        if end < start:
+            start, end = end, start
+        return set(range(start, end + 1))
+
+    resolved = _resolve_single_tile_token(value, defines)
+    if resolved is None:
+        return set()
+    return {resolved}
+
+
+def _parse_tile_token_list(value: str, defines: dict):
+    tiles = set()
+    for token in (value or "").split("|"):
+        tiles.update(_resolve_tile_token_to_set(token, defines))
+    return {tile for tile in tiles if tile >= 0}
+
+
+def _tile_model_dir(script_dir: Path):
+    return script_dir / "data" / "tile_model"
+
+
+def load_tile_runtime_rules_from_csv(defines: dict, script_dir: Path):
+    model_dir = _tile_model_dir(script_dir)
+
+    trigger_span_rules = []
+    for row in _read_csv_rows(model_dir / "tile_spans.csv"):
+        category = (row.get("category") or "").strip().lower()
+        trigger_tokens = (row.get("trigger") or "").strip()
+        length_token = (row.get("length") or "").strip()
+        if not category or not trigger_tokens or not length_token:
+            continue
+        if category not in {"sprite_precache", "spawn_span"}:
+            continue
+
+        try:
+            length = int(length_token)
+        except ValueError:
+            continue
+        if length <= 0:
+            continue
+
+        triggers = _parse_tile_token_list(trigger_tokens, defines)
+        if not triggers:
+            continue
+
+        trigger_span_rules.append(
+            {
+                "category": category,
+                "name": (row.get("notes") or "").strip(),
+                "triggers": triggers,
+                "length": length,
+            }
+        )
+
+    transition_rules = []
+    for row in _read_csv_rows(model_dir / "tile_transitions.csv"):
+        category = (row.get("category") or "").strip().lower()
+        trigger_tokens = (row.get("trigger") or "").strip()
+        include_tokens = (row.get("include") or "").strip()
+        if not category or not trigger_tokens or not include_tokens:
+            continue
+
+        triggers = _parse_tile_token_list(trigger_tokens, defines)
+        includes = _parse_tile_token_list(include_tokens, defines)
+        if not triggers or not includes:
+            continue
+
+        transition_rules.append(
+            {
+                "category": category,
+                "name": (row.get("notes") or "").strip(),
+                "triggers": triggers,
+                "includes": includes,
+            }
+        )
+
+    return trigger_span_rules, transition_rules
+
+
+def load_tile_baselines_from_csv(defines: dict, script_dir: Path):
+    model_dir = _tile_model_dir(script_dir)
+    baselines = defaultdict(set)
+
+    for row in _read_csv_rows(model_dir / "tile_baselines.csv"):
+        category = (row.get("category") or "").strip().lower()
+        item_tokens = (row.get("item") or "").strip()
+        if not category or not item_tokens:
+            continue
+        baselines[category].update(_parse_tile_token_list(item_tokens, defines))
+
+    return baselines
+
+
+def build_runtime_essentials_allowlist(temp_dir: Path, script_dir: Path):
+    defines = build_tile_defines_from_cons(temp_dir)
+    baselines = load_tile_baselines_from_csv(defines, script_dir)
+    return set(baselines.get("runtime_essential", set()))
+
+
+def build_ultra_minimal_menu_allowlist(temp_dir: Path, script_dir: Path):
+    defines = build_tile_defines_from_cons(temp_dir)
+    baselines = load_tile_baselines_from_csv(defines, script_dir)
+    return set(baselines.get("menu_ultra", set()))
 
 
 def expand_required_tiles_with_enemy_runtime_ranges(required_tiles):
@@ -713,159 +751,28 @@ def expand_required_tiles_with_enemy_runtime_ranges(required_tiles):
     return expanded
 
 
-def expand_required_tiles_with_sprite_precache_ranges(required_tiles, spawnmodel: str = "hybrid"):
-    """
-    Mirror non-PICANM sprite pre-cache ranges from premap.cpp::cacheTilesForSprite().
-
-    `mapinfo` reports direct map picnums only. Some sprites force additional
-    contiguous tiles at runtime via `extraTiles` or explicit side-effects.
-    """
+def expand_required_tiles_with_sprite_precache_ranges(required_tiles, temp_dir: Path, script_dir: Path, spawnmodel: str = "hybrid"):
+    """Apply sprite runtime rules loaded from CSV model files."""
     expanded = set(required_tiles)
+    if not expanded:
+        return expanded
 
-    # Contiguous picnum..picnum+N ranges implied by `extraTiles` behavior.
-    # Values are intentionally from source/duke3d/src/premap.cpp switch cases.
-    contiguous_runtime_groups = [
-        {
-            "name": "Camera and nuke barrel runtime tiles",
-            "triggers": {621, 1227},      # CAMERA1 / NUKEBARREL
-            "length": 5,                  # picnum .. picnum+4
-        },
-        {
-            "name": "Exploding barrel and hazard variants",
-            "triggers": {1079, 1238, 1247},  # OOZFILTER / EXPLODINGBARREL / SEENINE
-            "length": 3,                      # picnum .. picnum+2
-        },
-        {
-            "name": "Rubber can wobble variants",
-            "triggers": {1062},          # RUBBERCAN
-            "length": 2,                 # picnum .. picnum+1
-        },
-        {
-            "name": "Toilet water animation chunk",
-            "triggers": {921},           # TOILETWATER
-            "length": 4,                 # picnum .. picnum+3
-        },
-        {
-            "name": "Atomic health spin frames",
-            "triggers": {100},           # ATOMICHEALTH
-            "length": 14,                # picnum .. picnum+13
-        },
-        {
-            "name": "FEMPIC1 runtime span",
-            "triggers": {1280},          # FEMPIC1
-            "length": 44,                # picnum .. picnum+43
-        },
-    ]
+    defines = build_tile_defines_from_cons(temp_dir)
+    trigger_span_rules, transition_rules = load_tile_runtime_rules_from_csv(defines, script_dir)
 
-    for group in contiguous_runtime_groups:
-        matching_triggers = expanded & group["triggers"]
+    for rule in trigger_span_rules:
+        matching_triggers = expanded & rule["triggers"]
         if not matching_triggers:
             continue
-
-        length = group["length"]
+        length = rule["length"]
         for trigger in matching_triggers:
             expanded.update(range(trigger, trigger + length))
 
-    # Explicit one-off state/side-effect tiles switched at runtime.
-    runtime_state_groups = [
-        {
-            "name": "Fan sprite broken states",
-            "triggers": {407, 412},          # FANSPRITE / FANSHADOW
-            "tiles": {411, 416},             # FANSPRITEBROKE / FANSHADOWBROKE
-        },
-        {
-            "name": "Nuke button punch sequence",
-            "triggers": {142},               # NUKEBUTTON
-            "tiles": {143, 144, 145},        # NUKEBUTTON+1..+3
-        },
-        {
-            "name": "Hydrent/toilet/stall broken + water states",
-            "triggers": {569, 571, 981},     # TOILET / STALL / HYDRENT
-            "tiles": {568, 572, 921, 922, 923, 924, 938},
-            # TOILETBROKE(568), STALLBROKE(572), TOILETWATER..+3(921..924), BROKEFIREHYDRENT(938)
-        },
-        {
-            "name": "Switch on/off partner states (base+1)",
-            # From sector.cpp switch handling (REST_SWITCH_CASES + ACCESSSWITCH_CASES + DIPSWITCH_LIKE_CASES)
-            "triggers": {130, 132, 134, 136, 138, 140, 162, 164, 166, 168, 170, 712},
-            "tiles": {131, 133, 135, 137, 139, 141, 163, 165, 167, 169, 171, 713},
-        },
-        {
-            "name": "Screenbreak rotating trio",
-            # sector.cpp animates SCREENBREAK6..8 as a cycle when active
-            "triggers": {268, 269, 270},
-            "tiles": {268, 269, 270},
-        },
-        {
-            "name": "Grate break replacement state",
-            # sector.cpp damage handlers replace GRATE1 with BGRATE1
-            "triggers": {595},
-            "tiles": {596},
-        },
-        {
-            "name": "Wall screenbreak random replacement trio",
-            # sector.cpp wall damage path swaps many breakable wall pics to
-            # W_SCREENBREAK + (krand() % 3) => 357..359
-            "triggers": {
-                179, 263, 264, 265, 266, 267, 268, 269, 270,
-                271, 272, 273, 274, 275, 276, 277, 278, 279,
-                280, 281,
-            },
-            "tiles": {357, 358, 359},
-        },
-        {
-            "name": "Tech wall broken replacement states",
-            # sector.cpp checkhitwall() breakwall() remaps W_TECHWALL* to
-            # W_HITTECHWALL* replacements at runtime.
-            "triggers": {293, 297, 299, 301, 305, 306, 307, 4130, 4131, 4132, 4133},
-            "tiles": {360, 361, 362, 363, 4144, 4145, 4147},
-        },
-    ]
-
-    # Manual spawn-oriented additions that can be replaced by CON-derived auto spawn modeling.
-    runtime_spawn_whitelist_groups = [
-        {
-            "name": "Rubber can explosion rat spawns",
-            # GAME.CON state rats is called from RUBBERCAN when hit by RADIUSEXPLOSION.
-            # Rat sprites use a short runtime frame span that may not appear directly in map data.
-            "triggers": {1062},              # RUBBERCAN
-            "tiles": set(range(1267, 1272)), # RAT .. RAT+4
-        },
-        {
-            "name": "Egg hatch slime frames",
-            # GAME.CON actor EGG opens and spawns GREENSLIME.
-            # Keep the full GREENSLIME frame span even if no slime sprite is placed in-map.
-            "triggers": {675},               # EGG
-            "tiles": set(range(2370, 2378)), # GREENSLIME .. GREENSLIME+7
-        },
-        {
-            "name": "Trooper hide/respawn teleport effects",
-            # GAME.CON troophidestate and enemy respawn paths spawn TRANSPORTERSTAR and
-            # FRAMEEFFECT1_13CON from LIZTROOP family runtime states.
-            "triggers": {1680, 1681, 1715, 1725, 1741, 1744},  # LIZTROOP* variants
-            "tiles": set(range(1630, 1636)) | {3999},  # TRANSPORTERSTAR..+5 + FRAMEEFFECT1_13CON
-        },
-        {
-            "name": "Lizman random feces spawn",
-            # GAME.CON lizthinkstate can spawn FECES from LIZMAN behavior.
-            "triggers": {2120, 2150, 2160, 2165},  # LIZMAN* variants
-            "tiles": {2200},                 # FECES
-        },
-        {
-            "name": "Trash blowing paper frames",
-            # TRASH sprites (newspaper/debris) use a short frame span at runtime.
-            "triggers": {1272},              # TRASH
-            "tiles": set(range(1272, 1279)), # TRASH .. TRASH+6
-        },
-    ]
-
-    if spawnmodel in {"manual", "hybrid"}:
-        runtime_state_groups.extend(runtime_spawn_whitelist_groups)
-
-    for group in runtime_state_groups:
-        if not (expanded & group["triggers"]):
+    for rule in transition_rules:
+        if rule["category"] == "spawn_whitelist" and spawnmodel not in {"manual", "hybrid"}:
             continue
-        expanded.update(group["tiles"])
+        if expanded & rule["triggers"]:
+            expanded.update(rule["includes"])
 
     return expanded
 
@@ -1154,43 +1061,12 @@ def build_runtime_spawn_tile_dependencies(temp_dir: Path):
     return dependencies
 
 
-def build_spawn_runtime_span_rule_specs():
-    """
-    Rules for spawned tiles that require additional contiguous runtime frames.
-
-    This is intentionally name-based (CON define names), so the model can be
-    extended without tying logic to hardcoded numeric tile IDs.
-    """
-    return [
-        {"base_name": "rat", "length": 5},              # RAT .. RAT+4
-        {"base_name": "trash", "length": 7},            # TRASH .. TRASH+6
-        {"base_name": "greenslime", "length": 8},       # GREENSLIME .. +7
-        {"base_name": "transporterstar", "length": 6},  # TRANSPORTERSTAR .. +5
-    ]
-
-
-def expand_spawn_tiles_with_runtime_spans(spawned_tiles, defines):
-    if not spawned_tiles:
-        return set(spawned_tiles)
-
-    expanded = set(spawned_tiles)
-    for rule in build_spawn_runtime_span_rule_specs():
-        base_tile = defines.get(rule["base_name"])
-        if base_tile is None or base_tile not in expanded:
-            continue
-
-        length = rule.get("length")
-        if length is not None and length > 0:
-            expanded.update(range(base_tile, base_tile + length))
-
-    return expanded
-
-
-def expand_required_tiles_with_con_spawn_dependencies(required_tiles, temp_dir: Path):
+def expand_required_tiles_with_con_spawn_dependencies(required_tiles, temp_dir: Path, script_dir: Path):
     if not required_tiles:
         return set(required_tiles)
 
     defines = build_tile_defines_from_cons(temp_dir)
+    trigger_span_rules, _transition_rules = load_tile_runtime_rules_from_csv(defines, script_dir)
     dependencies = build_runtime_spawn_tile_dependencies(temp_dir)
     if not dependencies:
         return set(required_tiles)
@@ -1201,7 +1077,13 @@ def expand_required_tiles_with_con_spawn_dependencies(required_tiles, temp_dir: 
         if spawned:
             spawned_tiles.update(spawned)
 
-    spawned_tiles = expand_spawn_tiles_with_runtime_spans(spawned_tiles, defines)
+    for rule in trigger_span_rules:
+        if rule["category"] != "spawn_span":
+            continue
+        if spawned_tiles & rule["triggers"]:
+            for trigger in rule["triggers"]:
+                if trigger in spawned_tiles:
+                    spawned_tiles.update(range(trigger, trigger + rule["length"]))
 
     expanded = set(required_tiles)
     expanded.update(spawned_tiles)
@@ -1720,7 +1602,7 @@ def main():
         print("[warn] No .MAP files found in extracted GRP; skipping map-based tile restriction")
 
     if required_tiles is not None:
-        sprite_precache_tiles = expand_required_tiles_with_sprite_precache_ranges(required_tiles, args.spawnmodel)
+        sprite_precache_tiles = expand_required_tiles_with_sprite_precache_ranges(required_tiles, temp_dir, script_dir, args.spawnmodel)
         sprite_precache_added = len(sprite_precache_tiles) - len(required_tiles)
         if sprite_precache_added > 0:
             required_tiles = sprite_precache_tiles
@@ -1730,7 +1612,7 @@ def main():
             )
 
         if args.spawnmodel in {"auto", "hybrid"}:
-            con_spawn_tiles = expand_required_tiles_with_con_spawn_dependencies(required_tiles, temp_dir)
+            con_spawn_tiles = expand_required_tiles_with_con_spawn_dependencies(required_tiles, temp_dir, script_dir)
             con_spawn_added = len(con_spawn_tiles) - len(required_tiles)
             if con_spawn_added > 0:
                 required_tiles = con_spawn_tiles
@@ -1739,7 +1621,7 @@ def main():
                     f"(total now {len(required_tiles)})"
                 )
 
-        runtime_essential_tiles = build_runtime_essentials_allowlist()
+        runtime_essential_tiles = build_runtime_essentials_allowlist(temp_dir, script_dir)
         runtime_essential_expanded = set(required_tiles)
         runtime_essential_expanded.update(runtime_essential_tiles)
         runtime_essential_added = len(runtime_essential_expanded) - len(required_tiles)
@@ -1751,7 +1633,7 @@ def main():
             )
 
     if args.ultraminimalmenu:
-        menu_allow_tiles = build_ultra_minimal_menu_allowlist()
+        menu_allow_tiles = build_ultra_minimal_menu_allowlist(temp_dir, script_dir)
         if required_tiles is None:
             required_tiles = set()
         required_tiles.update(menu_allow_tiles)
