@@ -678,7 +678,7 @@ def expand_required_tiles_with_enemy_runtime_ranges(required_tiles, temp_dir: Pa
     return expanded
 
 
-def expand_required_tiles_with_sprite_precache_ranges(required_tiles, temp_dir: Path, script_dir: Path, spawnmodel: str = "hybrid"):
+def expand_required_tiles_with_sprite_precache_ranges(required_tiles, temp_dir: Path, script_dir: Path):
     """Apply sprite runtime rules loaded from CSV model files."""
     expanded = set(required_tiles)
     if not expanded:
@@ -696,8 +696,6 @@ def expand_required_tiles_with_sprite_precache_ranges(required_tiles, temp_dir: 
             expanded.update(range(trigger, trigger + length))
 
     for rule in transition_rules:
-        if rule["category"] == "spawn_whitelist" and spawnmodel not in {"manual", "hybrid"}:
-            continue
         if expanded & rule["triggers"]:
             expanded.update(rule["includes"])
 
@@ -1245,15 +1243,6 @@ def main():
         ),
     )
     parser.add_argument(
-        "--spawnmodel",
-        choices=["manual", "auto", "hybrid"],
-        default="hybrid",
-        help=(
-            "Runtime spawn dependency mode for map builds: "
-            "manual = whitelist-only, auto = CON-derived-only, hybrid = union of both (default)."
-        ),
-    )
-    parser.add_argument(
         "--dump-runtime-spawn-deps",
         metavar="FILE",
         help="Write computed CON runtime spawn dependencies to FILE",
@@ -1529,7 +1518,7 @@ def main():
         print("[warn] No .MAP files found in extracted GRP; skipping map-based tile restriction")
 
     if required_tiles is not None:
-        sprite_precache_tiles = expand_required_tiles_with_sprite_precache_ranges(required_tiles, temp_dir, script_dir, args.spawnmodel)
+        sprite_precache_tiles = expand_required_tiles_with_sprite_precache_ranges(required_tiles, temp_dir, script_dir)
         sprite_precache_added = len(sprite_precache_tiles) - len(required_tiles)
         if sprite_precache_added > 0:
             required_tiles = sprite_precache_tiles
@@ -1538,15 +1527,14 @@ def main():
                 f"(total now {len(required_tiles)})"
             )
 
-        if args.spawnmodel in {"auto", "hybrid"}:
-            con_spawn_tiles = expand_required_tiles_with_con_spawn_dependencies(required_tiles, temp_dir, script_dir)
-            con_spawn_added = len(con_spawn_tiles) - len(required_tiles)
-            if con_spawn_added > 0:
-                required_tiles = con_spawn_tiles
-                print(
-                    f"[info] map-based tile set: added {con_spawn_added} CON runtime-spawn tiles "
-                    f"(total now {len(required_tiles)})"
-                )
+        con_spawn_tiles = expand_required_tiles_with_con_spawn_dependencies(required_tiles, temp_dir, script_dir)
+        con_spawn_added = len(con_spawn_tiles) - len(required_tiles)
+        if con_spawn_added > 0:
+            required_tiles = con_spawn_tiles
+            print(
+                f"[info] map-based tile set: added {con_spawn_added} CON runtime-spawn tiles "
+                f"(total now {len(required_tiles)})"
+            )
 
         runtime_essential_tiles = build_runtime_essentials_allowlist(temp_dir, script_dir)
         runtime_essential_expanded = set(required_tiles)
