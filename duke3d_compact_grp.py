@@ -931,11 +931,14 @@ def build_runtime_spawn_tile_dependencies(temp_dir: Path):
                 continue
 
             keyword = tokens[0].lower()
-            if keyword == "state" and len(tokens) >= 2:
+            if keyword == "state" and len(tokens) >= 2 and current_state is None and current_actor is None:
                 current_state = tokens[1].lower()
                 current_actor = None
-            elif keyword == "actor" and len(tokens) >= 2:
+            elif keyword == "actor" and len(tokens) >= 2 and current_state is None and current_actor is None:
                 current_actor = tokens[1].lower()
+                current_state = None
+            elif keyword == "useractor" and len(tokens) >= 3 and current_state is None and current_actor is None:
+                current_actor = tokens[2].lower()
                 current_state = None
             elif keyword == "enda":
                 current_actor = None
@@ -1271,11 +1274,14 @@ def build_con_runtime_sound_dependencies(temp_dir: Path, defines: dict):
                     continue
 
                 keyword = tokens[0].lower()
-                if keyword == "state" and len(tokens) >= 2:
+                if keyword == "state" and len(tokens) >= 2 and current_state is None and current_actor is None:
                     current_state = tokens[1].lower()
                     current_actor = None
-                elif keyword == "actor" and len(tokens) >= 2:
+                elif keyword == "actor" and len(tokens) >= 2 and current_state is None and current_actor is None:
                     current_actor = tokens[1].lower()
+                    current_state = None
+                elif keyword == "useractor" and len(tokens) >= 3 and current_state is None and current_actor is None:
+                    current_actor = tokens[2].lower()
                     current_state = None
                 elif keyword == "enda":
                     current_actor = None
@@ -1624,6 +1630,28 @@ def print_sound_model_unresolved(model: dict):
             f"[warn] required sound IDs without CON file mapping ({len(unresolved['unknown_required_sound_ids'])}): "
             f"{', '.join(str(v) for v in unresolved['unknown_required_sound_ids'][:24])}"
         )
+
+
+def print_required_sound_summary(model: dict):
+    required_ids = set(model["required_sound_ids"])
+    files = set()
+    for entry in model["sound_id_to_files"].values():
+        files.update(entry)
+    mapped_ids = {sid for sid, names in model["sound_id_to_files"].items() if names}
+
+    missing_known_files = sorted(files - {f for f in model["required_sound_files"] if f.endswith(".voc")})
+    if missing_known_files:
+        preview = ", ".join(missing_known_files[:16])
+        if len(missing_known_files) > 16:
+            preview += ", ..."
+        print(
+            f"[debug] sound model exclusion sample ({len(missing_known_files)} known VOCs excluded): {preview}"
+        )
+
+    print(
+        f"[debug] sound model coverage: required_ids={len(required_ids)} mapped_ids={len(mapped_ids)} "
+        f"known_sound_files={len(files)}"
+    )
 
 
 
@@ -2199,6 +2227,8 @@ def main():
             print(f"[info] wrote sound dependency dump: {sound_deps_dump_path}")
 
         print_sound_model_unresolved(required_sound_model)
+        if args.debug_sounds:
+            print_required_sound_summary(required_sound_model)
 
     # arttool expects lowercase tilesXXX.art filenames for files we process.
     if selected_tile_files:
