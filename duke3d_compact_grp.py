@@ -1154,19 +1154,57 @@ def build_runtime_spawn_tile_dependencies(temp_dir: Path):
     return dependencies
 
 
+def build_spawn_runtime_span_rule_specs():
+    """
+    Rules for spawned tiles that require additional contiguous runtime frames.
+
+    This is intentionally name-based (CON define names), so the model can be
+    extended without tying logic to hardcoded numeric tile IDs.
+    """
+    return [
+        {"base_name": "rat", "length": 5},              # RAT .. RAT+4
+        {"base_name": "trash", "length": 7},            # TRASH .. TRASH+6
+        {"base_name": "greenslime", "length": 8},       # GREENSLIME .. +7
+        {"base_name": "transporterstar", "length": 6},  # TRANSPORTERSTAR .. +5
+    ]
+
+
+def expand_spawn_tiles_with_runtime_spans(spawned_tiles, defines):
+    if not spawned_tiles:
+        return set(spawned_tiles)
+
+    expanded = set(spawned_tiles)
+    for rule in build_spawn_runtime_span_rule_specs():
+        base_tile = defines.get(rule["base_name"])
+        if base_tile is None or base_tile not in expanded:
+            continue
+
+        length = rule.get("length")
+        if length is not None and length > 0:
+            expanded.update(range(base_tile, base_tile + length))
+
+    return expanded
+
+
 def expand_required_tiles_with_con_spawn_dependencies(required_tiles, temp_dir: Path):
     if not required_tiles:
         return set(required_tiles)
 
+    defines = build_tile_defines_from_cons(temp_dir)
     dependencies = build_runtime_spawn_tile_dependencies(temp_dir)
     if not dependencies:
         return set(required_tiles)
 
-    expanded = set(required_tiles)
+    spawned_tiles = set()
     for tile in list(required_tiles):
         spawned = dependencies.get(tile)
         if spawned:
-            expanded.update(spawned)
+            spawned_tiles.update(spawned)
+
+    spawned_tiles = expand_spawn_tiles_with_runtime_spans(spawned_tiles, defines)
+
+    expanded = set(required_tiles)
+    expanded.update(spawned_tiles)
 
     return expanded
 
