@@ -6,7 +6,6 @@ import shutil
 import statistics
 import subprocess
 import sys
-import tempfile
 from collections import defaultdict
 from pathlib import Path
 
@@ -19,6 +18,7 @@ TILE_PCX = [
 ]
 
 ZOPFLI_ITERATIONS = 50
+OUTPUT_DIR = Path("png_test_outputs")
 
 CONVERT = shutil.which("convert")
 PNGQUANT = Path.home() / "software" / "pngquant"
@@ -53,7 +53,7 @@ def run(cmd, desc=""):
 def apply_pngquant(png_path):
     return run([
         str(PNGQUANT),
-        "--quality", "50",
+        "--quality", "69-71",
         "--speed", "1",
         "--posterize", "2",
         "--ext", ".PNG",
@@ -92,8 +92,8 @@ def build_pipelines():
         all_pipelines[pipeline_name([n])] = [n]
     for a, b in itertools.permutations(names, 2):
         all_pipelines[pipeline_name([a, b])] = [a, b]
-    for a, b, c in itertools.permutations(names, 3):
-        all_pipelines[pipeline_name([a, b, c])] = [a, b, c]
+    #for a, b, c in itertools.permutations(names, 3):
+        #all_pipelines[pipeline_name([a, b, c])] = [a, b, c]
     return all_pipelines
 
 def get_colors(png_path):
@@ -140,6 +140,10 @@ def main():
         base_size = pcx_path.stat().st_size
         prebuilt = find_prebuilt(tile_num)
 
+        tile_stem = pcx_name.replace(".pcx", "")
+        out_dir = OUTPUT_DIR / tile_stem
+        out_dir.mkdir(parents=True, exist_ok=True)
+
         print(f"\n{'='*70}")
         print(f"Tile: {pcx_name}  (PCX: {base_size} bytes)")
         if prebuilt:
@@ -147,40 +151,38 @@ def main():
         print(f"{'='*70}")
 
         # Baseline: convert only
-        with tempfile.TemporaryDirectory() as tmpdir:
-            out_png = Path(tmpdir) / "TILE0000.PNG"  # uppercase .PNG to match --ext .PNG
-            convert_cmd = [CONVERT, str(pcx_path)] + BASE_CONVERT_ARGS + [f"PNG8:{out_png}"]
-            proc = run(convert_cmd, "convert")
-            if proc.returncode == 0 and out_png.exists():
-                sz = out_png.stat().st_size
-                cols = get_colors(out_png)
-                print(f"  {'convert-only':30s}  {sz:>8,} bytes  colors={cols}")
-                results.append({
-                    "tile": pcx_name, "pipeline": "convert-only",
-                    "final_bytes": sz, "colors": cols,
-                    "savings_pct": (1 - sz / base_size) * 100,
-                })
+        out_png = out_dir / "convert-only.PNG"
+        convert_cmd = [CONVERT, str(pcx_path)] + BASE_CONVERT_ARGS + [f"PNG8:{out_png}"]
+        proc = run(convert_cmd, "convert")
+        if proc.returncode == 0 and out_png.exists():
+            sz = out_png.stat().st_size
+            cols = get_colors(out_png)
+            print(f"  {'convert-only':30s}  {sz:>8,} bytes  colors={cols}")
+            results.append({
+                "tile": pcx_name, "pipeline": "convert-only",
+                "final_bytes": sz, "colors": cols,
+                "savings_pct": (1 - sz / base_size) * 100,
+            })
 
         for pname, steps in pipelines.items():
-            with tempfile.TemporaryDirectory() as tmpdir:
-                out_png = Path(tmpdir) / "TILE0000.PNG"  # uppercase .PNG
-                convert_cmd = [CONVERT, str(pcx_path)] + BASE_CONVERT_ARGS + [f"PNG8:{out_png}"]
-                proc = run(convert_cmd, "convert")
-                if proc.returncode != 0 or not out_png.exists():
-                    print(f"  [{pname:30s}] CONVERT FAILED")
-                    continue
+            out_png = out_dir / f"{pname}.PNG"
+            convert_cmd = [CONVERT, str(pcx_path)] + BASE_CONVERT_ARGS + [f"PNG8:{out_png}"]
+            proc = run(convert_cmd, "convert")
+            if proc.returncode != 0 or not out_png.exists():
+                print(f"  [{pname:30s}] CONVERT FAILED")
+                continue
 
-                for step_name in steps:
-                    TOOLS[step_name](out_png)
+            for step_name in steps:
+                TOOLS[step_name](out_png)
 
-                sz = out_png.stat().st_size
-                cols = get_colors(out_png)
-                results.append({
-                    "tile": pcx_name, "pipeline": pname,
-                    "final_bytes": sz, "colors": cols,
-                    "savings_pct": (1 - sz / base_size) * 100,
-                })
-                print(f"  {pname:30s}  {sz:>8,} bytes  colors={cols!s:>4}  ({results[-1]['savings_pct']:5.1f}%)")
+            sz = out_png.stat().st_size
+            cols = get_colors(out_png)
+            results.append({
+                "tile": pcx_name, "pipeline": pname,
+                "final_bytes": sz, "colors": cols,
+                "savings_pct": (1 - sz / base_size) * 100,
+            })
+            print(f"  {pname:30s}  {sz:>8,} bytes  colors={cols!s:>4}  ({results[-1]['savings_pct']:5.1f}%)")
 
     if not results:
         print("No results!")
