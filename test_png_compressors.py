@@ -2,30 +2,35 @@
 """Test all pipeline orders of pngquant, optipng, zopflipng on PCX->PNG tiles."""
 
 import itertools
-import os
 import shutil
 import statistics
 import subprocess
 import sys
 import tempfile
+from collections import defaultdict
 from pathlib import Path
 
 PCX_DIR = Path("precalculated_pngs_shareware_1.3D")
-PALETTE = PCX_DIR / "palette.dat"
 
-# Pick tiles spanning a range of sizes
 TILE_PCX = [
     "tile0000.pcx",  # 2.5 KB  small
     "tile0090.pcx",  # 23 KB   large
     "tile2445.pcx",  # 62 KB   very large
 ]
 
-ZOPFLI_ITERATIONS = 50  # fewer iterations for faster testing; same relative ranking
+ZOPFLI_ITERATIONS = 50
 
 CONVERT = shutil.which("convert")
 PNGQUANT = Path.home() / "software" / "pngquant"
 OPTIPNG = shutil.which("optipng")
 ZOPFLIPNG = shutil.which("zopflipng")
+
+# Pre-existing PNGs for comparison
+PNG_DIRS = {
+    "shareware": Path("precalculated_pngs_shareware_1.3D"),
+    "pngquant": Path("precalculated_pngs_pngquant"),
+    "pngquant_10": Path("precalculated_pngs_pngquant_10"),
+}
 
 BASE_CONVERT_ARGS = [
     "-alpha", "on",
@@ -83,25 +88,42 @@ def pipeline_name(seq):
 def build_pipelines():
     names = list(TOOLS.keys())
     all_pipelines = {}
-    # single tools
     for n in names:
         all_pipelines[pipeline_name([n])] = [n]
-    # pairs — both orders
     for a, b in itertools.permutations(names, 2):
         all_pipelines[pipeline_name([a, b])] = [a, b]
-    # triples — all 6 orders
     for a, b, c in itertools.permutations(names, 3):
         all_pipelines[pipeline_name([a, b, c])] = [a, b, c]
     return all_pipelines
 
+def get_colors(png_path):
+    try:
+        out = subprocess.run(
+            ["identify", "-verbose", str(png_path)],
+            capture_output=True, text=True
+        ).stdout
+        for line in out.splitlines():
+            line = line.strip()
+            if line.startswith("Colors:"):
+                return int(line.split(":")[1].strip())
+    except Exception:
+        return None
+    return None
+
+def find_prebuilt(tile_num):
+    num = f"TILE{tile_num:04d}.PNG"
+    results = {}
+    for label, d in PNG_DIRS.items():
+        p = d / num
+        if p.exists():
+            results[label] = p.stat().st_size
+    return results
+
 def main():
     for tool in [CONVERT, PNGQUANT, OPTIPNG, ZOPFLIPNG]:
-        if not tool or (tool != CONVERT and tool != OPTIPNG and not Path(tool).exists()):
+        if not tool or not Path(str(tool)).exists():
             print(f"ERROR: required tool not found: {tool}")
             sys.exit(1)
-    if not PNGQUANT.exists():
-        print(f"ERROR: pngquant not found at {PNGQUANT}")
-        sys.exit(1)
 
     pipelines = build_pipelines()
     print(f"Testing {len(pipelines)} pipeline combinations across {len(TILE_PCX)} tiles\n")
@@ -111,74 +133,89 @@ def main():
     for pcx_name in TILE_PCX:
         pcx_path = PCX_DIR / pcx_name
         if not pcx_path.exists():
-            print(f"SKIP {pcx_name} — not found")
+            print(f"SKIP {pcx_name}")
             continue
 
+        tile_num = int(pcx_name.replace("tile", "").replace(".pcx", ""))
         base_size = pcx_path.stat().st_size
+        prebuilt = find_prebuilt(tile_num)
+
         print(f"\n{'='*70}")
-        print(f"Tile: {pcx_name}  (PCX size: {base_size} bytes)")
+        print(f"Tile: {pcx_name}  (PCX: {base_size} bytes)")
+        if prebuilt:
+            print(f"  Pre-existing PNGs: " + ", ".join(f"{k}={v}B" for k, v in prebuilt.items()))
         print(f"{'='*70}")
+
+        # Baseline: convert only
+        with tempfile.TemporaryDirectory() as tmpdir:
+            out_png = Path(tmpdir) / "TILE0000.PNG"  # uppercase .PNG to match --ext .PNG
+            convert_cmd = [CONVERT, str(pcx_path)] + BASE_CONVERT_ARGS + [f"PNG8:{out_png}"]
+            proc = run(convert_cmd, "convert")
+            if proc.returncode == 0 and out_png.exists():
+                sz = out_png.stat().st_size
+                cols = get_colors(out_png)
+                print(f"  {'convert-only':30s}  {sz:>8,} bytes  colors={cols}")
+                results.append({
+                    "tile": pcx_name, "pipeline": "convert-only",
+                    "final_bytes": sz, "colors": cols,
+                    "savings_pct": (1 - sz / base_size) * 100,
+                })
 
         for pname, steps in pipelines.items():
             with tempfile.TemporaryDirectory() as tmpdir:
-                out_png = Path(tmpdir) / "tile.png"
-                print(f"  [{pname:30s}] ", end="", flush=True)
-
+                out_png = Path(tmpdir) / "TILE0000.PNG"  # uppercase .PNG
                 convert_cmd = [CONVERT, str(pcx_path)] + BASE_CONVERT_ARGS + [f"PNG8:{out_png}"]
                 proc = run(convert_cmd, "convert")
                 if proc.returncode != 0 or not out_png.exists():
-                    print(f"CONVERT FAILED (skip)")
+                    print(f"  [{pname:30s}] CONVERT FAILED")
                     continue
 
-                after_size = out_png.stat().st_size
                 for step_name in steps:
                     TOOLS[step_name](out_png)
-                    after_size = out_png.stat().st_size
 
+                sz = out_png.stat().st_size
+                cols = get_colors(out_png)
                 results.append({
-                    "tile": pcx_name,
-                    "pipeline": pname,
-                    "final_bytes": after_size,
-                    "savings_pct": (1 - after_size / base_size) * 100,
+                    "tile": pcx_name, "pipeline": pname,
+                    "final_bytes": sz, "colors": cols,
+                    "savings_pct": (1 - sz / base_size) * 100,
                 })
-                print(f"{after_size:>8,} bytes  ({results[-1]['savings_pct']:5.1f}%)")
+                print(f"  {pname:30s}  {sz:>8,} bytes  colors={cols!s:>4}  ({results[-1]['savings_pct']:5.1f}%)")
 
     if not results:
         print("No results!")
         return
 
     print(f"\n{'='*70}")
-    print("SUMMARY — Best pipeline per tile (smallest final bytes)")
+    print("BEST PER TILE (smallest)")
     print(f"{'='*70}")
-    tiles = sorted(set(r["tile"] for r in results))
-    for tile in tiles:
+    for tile in sorted(set(r["tile"] for r in results)):
         tile_results = [r for r in results if r["tile"] == tile]
         best = min(tile_results, key=lambda r: r["final_bytes"])
         worst = max(tile_results, key=lambda r: r["final_bytes"])
         print(f"  {tile}:")
-        print(f"    BEST:  {best['pipeline']:30s}  {best['final_bytes']:>8,} bytes  ({best['savings_pct']:5.1f}%)")
-        print(f"    WORST: {worst['pipeline']:30s}  {worst['final_bytes']:>8,} bytes  ({worst['savings_pct']:5.1f}%)")
+        print(f"    BEST:  {best['pipeline']:30s}  {best['final_bytes']:>8,} B  colors={best['colors']}")
+        print(f"    WORST: {worst['pipeline']:30s}  {worst['final_bytes']:>8,} B  colors={worst['colors']}")
 
     print(f"\n{'='*70}")
-    print("AVERAGE RANKING (lowest average bytes = best)")
+    print("AVERAGE RANKING (lowest avg bytes = best)")
     print(f"{'='*70}")
-    from collections import defaultdict
     pipe_totals = defaultdict(list)
     for r in results:
         pipe_totals[r["pipeline"]].append(r["final_bytes"])
     ranked = sorted(pipe_totals.items(), key=lambda kv: statistics.mean(kv[1]))
     for rank, (pname, sizes) in enumerate(ranked, 1):
         avg = statistics.mean(sizes)
-        print(f"  {rank:2d}. {pname:30s}  avg {avg:>8,.0f} bytes")
+        print(f"  {rank:2d}. {pname:30s}  avg {avg:>8,.0f} B")
 
     print(f"\n{'='*70}")
-    print("BEST OVERALL (fewest total bytes across all tiles)")
+    print("TOTAL BYTES (lower = better)")
     print(f"{'='*70}")
     pipe_totals2 = defaultdict(int)
     for r in results:
         pipe_totals2[r["pipeline"]] += r["final_bytes"]
-    best_overall = min(pipe_totals2.items(), key=lambda kv: kv[1])
-    print(f"  {best_overall[0]:30s}  {best_overall[1]:>8,} total bytes")
+    for pname, total in sorted(pipe_totals2.items(), key=lambda kv: kv[1]):
+        print(f"  {pname:30s}  {total:>8,} B")
 
 if __name__ == "__main__":
     main()
