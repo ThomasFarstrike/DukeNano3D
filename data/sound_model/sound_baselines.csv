@@ -1,0 +1,11 @@
+category,item,scope,notes
+runtime_essential,KICK_HIT,map,Quick kick impact
+runtime_essential,PISTOL_FIRE|INSERT_CLIP|SELECT_WEAPON,map,Pistol fire and weapon handling
+runtime_essential,SHOTGUN_FIRE|SHOTGUN_COCK,map,Shotgun common cycle
+runtime_essential,RPG_SHOOT|RPG_EXPLODE,map,RPG launch and impact
+runtime_essential,PIPEBOMB_THROW|PIPEBOMB_EXPLODE,map,Pipebomb core sounds
+runtime_essential,CHAINGUN_FIRE|CAT_FIRE,map,Chaingun and mode variants
+runtime_essential,SHRINKER_FIRE|EXPANDERSHOOT,map,Shrinker/expander fire
+runtime_essential,FLY_BY|EJECT_CLIP,map,Common cinematic and reload FX
+runtime_essential,DUKE_GRUNT|DUKE_LAND_HURT,map,Player movement pain cues
+runtime_essential,DUKE_CRACK|DUKE_GETWEAPON6|JIBBED_ACTOR13,map,Knuckle crack and random taunt lines

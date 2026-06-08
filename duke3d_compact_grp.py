@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import re
+import struct
 import subprocess
 import sys
 from collections import defaultdict
@@ -499,7 +500,7 @@ def normalize_case_insensitive_options(argv, option_names):
 
 def _read_csv_rows(csv_path: Path):
     if not csv_path.exists():
-        raise FileNotFoundError(f"Required tile model CSV not found: {csv_path}")
+        raise FileNotFoundError(f"Required model CSV not found: {csv_path}")
 
     raw_lines = csv_path.read_text(encoding="utf-8", errors="replace").splitlines()
     filtered = [line for line in raw_lines if line.strip() and not line.lstrip().startswith("#")]
@@ -712,7 +713,14 @@ def parse_sound_id_from_token(token: str, defines: dict):
 
 
 
-def parse_con_defines_and_sounds(con_path: Path, defines: dict, voc_to_sound_ids: dict, sound_fields_by_id: dict):
+def parse_con_defines_and_sounds(
+    con_path: Path,
+    defines: dict,
+    voc_to_sound_ids: dict,
+    sound_fields_by_id: dict,
+    sound_id_to_files: dict,
+    unresolved_sound_tokens: set,
+):
     with con_path.open("r", encoding="utf-8", errors="replace") as fh:
         for raw_line in fh:
             line = strip_con_line_comment(raw_line).strip()
@@ -738,14 +746,18 @@ def parse_con_defines_and_sounds(con_path: Path, defines: dict, voc_to_sound_ids
             if keyword in {"sound", "definesound"} and len(tokens) >= 3:
                 sound_token = tokens[1]
                 sound_file = Path(tokens[2]).name
-                if Path(sound_file).suffix.lower() != ".voc":
+                suffix = Path(sound_file).suffix.lower()
+                if suffix not in {".voc", ".wav"}:
                     continue
 
                 sound_id = parse_sound_id_from_token(sound_token, defines)
                 if sound_id is None:
+                    unresolved_sound_tokens.add(sound_token)
                     continue
 
-                voc_to_sound_ids.setdefault(sound_file.lower(), set()).add(sound_id)
+                sound_file_lc = sound_file.lower()
+                voc_to_sound_ids.setdefault(sound_file_lc, set()).add(sound_id)
+                sound_id_to_files.setdefault(sound_id, set()).add(sound_file_lc)
 
                 # USER.CON definesound format:
                 # definesound <value> <filename> <pitch_lower> <pitch_upper> <priority> <type> <distance>
@@ -764,6 +776,8 @@ def build_sound_maps_from_cons(temp_dir: Path):
     defines = {}
     voc_to_sound_ids = {}
     sound_fields_by_id = {}
+    sound_id_to_files = {}
+    unresolved_sound_tokens = set()
 
     # Parse all CON files in deterministic order. This covers common DUKE3D
     # layouts where sound tokens are defined in one CON and used in another.
@@ -772,9 +786,16 @@ def build_sound_maps_from_cons(temp_dir: Path):
         key=lambda p: p.name.lower(),
     )
     for con_file in con_files:
-        parse_con_defines_and_sounds(con_file, defines, voc_to_sound_ids, sound_fields_by_id)
+        parse_con_defines_and_sounds(
+            con_file,
+            defines,
+            voc_to_sound_ids,
+            sound_fields_by_id,
+            sound_id_to_files,
+            unresolved_sound_tokens,
+        )
 
-    return voc_to_sound_ids, sound_fields_by_id
+    return voc_to_sound_ids, sound_fields_by_id, sound_id_to_files, defines, unresolved_sound_tokens
 
 
 
@@ -1072,11 +1093,563 @@ def dump_required_tiles(required_tiles, output_path: Path):
             fh.write(f"{tile}\n")
 
 
+def _sound_model_dir(script_dir: Path):
+    return script_dir / "data" / "sound_model"
+
+
+def _parse_sound_token_list(value: str, defines: dict):
+    sounds = set()
+    for token in (value or "").split("|"):
+        sounds.update(_resolve_tile_token_to_set(token, defines))
+    return {sound_id for sound_id in sounds if sound_id >= 0}
+
+
+def load_sound_model_from_csv(defines: dict, script_dir: Path):
+    model_dir = _sound_model_dir(script_dir)
+
+    baselines = defaultdict(set)
+    for row in _read_csv_rows(model_dir / "sound_baselines.csv"):
+        category = (row.get("category") or "").strip().lower()
+        item_tokens = (row.get("item") or "").strip()
+        if not category or not item_tokens:
+            continue
+        baselines[category].update(_parse_sound_token_list(item_tokens, defines))
+
+    transition_rules = []
+    for row in _read_csv_rows(model_dir / "sound_transitions.csv"):
+        category = (row.get("category") or "").strip().lower()
+        trigger_type = (row.get("trigger_type") or "").strip().lower()
+        trigger_token = (row.get("trigger") or "").strip()
+        include_token = (row.get("include") or "").strip()
+        if not category or not trigger_type or not include_token:
+            continue
+
+        trigger_values = None
+        if trigger_type != "always":
+            if trigger_token and trigger_token != "*":
+                trigger_values = _parse_sound_token_list(trigger_token, defines)
+                if not trigger_values:
+                    continue
+            elif trigger_token != "*":
+                continue
+
+        include_mode = "static"
+        include_values = set()
+        include_token_lc = include_token.lower()
+        if include_token_lc == "@trigger_value":
+            include_mode = "trigger_value"
+        elif include_token_lc == "@trigger_value_minus_10000":
+            include_mode = "trigger_value_minus_10000"
+        else:
+            include_values = _parse_sound_token_list(include_token, defines)
+            if not include_values:
+                continue
+
+        transition_rules.append(
+            {
+                "category": category,
+                "trigger_type": trigger_type,
+                "trigger_values": trigger_values,
+                "include_mode": include_mode,
+                "include_values": include_values,
+                "name": (row.get("notes") or "").strip(),
+            }
+        )
+
+    return baselines, transition_rules
+
+
+def parse_map_runtime_context(map_path: Path):
+    context = {
+        "sprite_picnums": set(),
+        "sprite_lotags": set(),
+        "sprite_hitags": set(),
+        "wall_lotags": set(),
+        "wall_hitags": set(),
+        "sector_lotags": set(),
+        "sector_hitags": set(),
+    }
+
+    with map_path.open("rb") as fh:
+        header = fh.read(20)
+        if len(header) != 20:
+            return context
+
+        version = struct.unpack("<I", header[:4])[0]
+        if version < 7 or version > 9:
+            return context
+
+        numsectors_raw = fh.read(2)
+        if len(numsectors_raw) != 2:
+            return context
+        numsectors = struct.unpack("<H", numsectors_raw)[0]
+
+        for _ in range(numsectors):
+            sector = fh.read(40)
+            if len(sector) != 40:
+                return context
+            lotag = struct.unpack_from("<h", sector, 34)[0]
+            hitag = struct.unpack_from("<h", sector, 36)[0]
+            context["sector_lotags"].add(lotag)
+            context["sector_hitags"].add(hitag)
+
+        numwalls_raw = fh.read(2)
+        if len(numwalls_raw) != 2:
+            return context
+        numwalls = struct.unpack("<H", numwalls_raw)[0]
+
+        for _ in range(numwalls):
+            wall = fh.read(32)
+            if len(wall) != 32:
+                return context
+            lotag = struct.unpack_from("<h", wall, 28)[0]
+            hitag = struct.unpack_from("<h", wall, 30)[0]
+            context["wall_lotags"].add(lotag)
+            context["wall_hitags"].add(hitag)
+
+        numsprites_raw = fh.read(2)
+        if len(numsprites_raw) != 2:
+            return context
+        numsprites = struct.unpack("<H", numsprites_raw)[0]
+
+        for _ in range(numsprites):
+            sprite = fh.read(44)
+            if len(sprite) != 44:
+                return context
+            picnum = struct.unpack_from("<h", sprite, 14)[0]
+            lotag = struct.unpack_from("<h", sprite, 40)[0]
+            hitag = struct.unpack_from("<h", sprite, 42)[0]
+            context["sprite_picnums"].add(picnum)
+            context["sprite_lotags"].add(lotag)
+            context["sprite_hitags"].add(hitag)
+
+    return context
+
+
+def build_con_runtime_sound_dependencies(temp_dir: Path, defines: dict):
+    state_sounds = defaultdict(set)
+    state_calls = defaultdict(set)
+    actor_sounds = defaultdict(set)
+    actor_state_calls = defaultdict(set)
+    actor_actor_calls = defaultdict(set)
+    global_sounds = set()
+    unresolved_sound_tokens = set()
+
+    current_state = None
+    current_actor = None
+
+    con_files = sorted(
+        [p for p in temp_dir.iterdir() if p.is_file() and p.suffix.lower() == ".con"],
+        key=lambda p: p.name.lower(),
+    )
+
+    def add_sound_token(token: str):
+        sound_id = parse_sound_id_from_token(token, defines)
+        if sound_id is None or sound_id < 0:
+            unresolved_sound_tokens.add(token)
+            return
+        if current_state is not None:
+            state_sounds[current_state].add(sound_id)
+        elif current_actor is not None:
+            actor_sounds[current_actor].add(sound_id)
+        else:
+            global_sounds.add(sound_id)
+
+    sound_call_re = re.compile(r"\b(?:sound|soundonce|globalsound|spritesound)\s+([A-Za-z_][A-Za-z0-9_]*|-?\d+)", flags=re.IGNORECASE)
+    state_call_re = re.compile(r"\bstate\s+([A-Za-z_][A-Za-z0-9_]*)", flags=re.IGNORECASE)
+    cactor_call_re = re.compile(r"\bcactor\s+([A-Za-z_][A-Za-z0-9_]*)", flags=re.IGNORECASE)
+
+    for con_file in con_files:
+        with con_file.open("r", encoding="utf-8", errors="replace") as fh:
+            for raw_line in fh:
+                line = strip_con_line_comment(raw_line).strip()
+                if not line:
+                    continue
+
+                tokens = line.split()
+                if not tokens:
+                    continue
+
+                keyword = tokens[0].lower()
+                if keyword == "state" and len(tokens) >= 2:
+                    current_state = tokens[1].lower()
+                    current_actor = None
+                elif keyword == "actor" and len(tokens) >= 2:
+                    current_actor = tokens[1].lower()
+                    current_state = None
+                elif keyword == "enda":
+                    current_actor = None
+                elif keyword == "ends":
+                    current_state = None
+
+                for match in sound_call_re.finditer(line):
+                    add_sound_token(match.group(1))
+
+                if current_state is not None:
+                    for match in state_call_re.finditer(line):
+                        state_calls[current_state].add(match.group(1).lower())
+                elif current_actor is not None:
+                    for match in state_call_re.finditer(line):
+                        actor_state_calls[current_actor].add(match.group(1).lower())
+                    for match in cactor_call_re.finditer(line):
+                        actor_actor_calls[current_actor].add(match.group(1).lower())
+
+    state_cache = {}
+
+    def collect_state_sounds(state_name: str, visiting: set):
+        cached = state_cache.get(state_name)
+        if cached is not None:
+            return cached
+
+        if state_name in visiting:
+            return set()
+
+        visiting.add(state_name)
+        result = set(state_sounds.get(state_name, set()))
+        for next_state in state_calls.get(state_name, set()):
+            result.update(collect_state_sounds(next_state, visiting))
+        visiting.remove(state_name)
+
+        state_cache[state_name] = result
+        return result
+
+    actor_cache = {}
+
+    def collect_actor_sounds(actor_name: str, visiting: set):
+        cached = actor_cache.get(actor_name)
+        if cached is not None:
+            return cached
+
+        if actor_name in visiting:
+            return set()
+
+        visiting.add(actor_name)
+        result = set(actor_sounds.get(actor_name, set()))
+        for state_name in actor_state_calls.get(actor_name, set()):
+            result.update(collect_state_sounds(state_name, set()))
+        for next_actor in actor_actor_calls.get(actor_name, set()):
+            result.update(collect_actor_sounds(next_actor, visiting))
+        visiting.remove(actor_name)
+
+        actor_cache[actor_name] = result
+        return result
+
+    dependencies = {}
+    actor_names = set(actor_sounds.keys()) | set(actor_state_calls.keys()) | set(actor_actor_calls.keys())
+    for actor_name in actor_names:
+        trigger_tile = defines.get(actor_name)
+        if trigger_tile is None or trigger_tile < 0:
+            continue
+        actor_sound_ids = collect_actor_sounds(actor_name, set())
+        if actor_sound_ids:
+            dependencies[trigger_tile] = actor_sound_ids
+
+    return dependencies, global_sounds, unresolved_sound_tokens
+
+
+def analyze_c_sound_runtime_paths(script_dir: Path):
+    src_dir = script_dir / "eduke32-for-DukeNano3D" / "source" / "duke3d" / "src"
+    files = [
+        "sector.cpp",
+        "player.cpp",
+        "actors.cpp",
+        "game.cpp",
+        "screens.cpp",
+        "gamedef.cpp",
+    ]
+
+    supports_hitag_sound_id = False
+    supports_lotag_sound_id = False
+    supports_lotag_minus_10000 = False
+    static_sound_tokens = set()
+    unresolved_expressions = set()
+
+    first_arg_re = re.compile(r"\b(?:A_PlaySound|S_PlaySound|S_PlaySound3D)\s*\(\s*([^,\)]+)")
+    simple_symbol_re = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+    simple_int_re = re.compile(r"^-?\d+$")
+
+    for name in files:
+        path = src_dir / name
+        if not path.exists():
+            continue
+        with path.open("r", encoding="utf-8", errors="replace") as fh:
+            for raw_line in fh:
+                line = raw_line.split("//", 1)[0]
+                for match in first_arg_re.finditer(line):
+                    expr = match.group(1).strip()
+                    if not expr:
+                        continue
+
+                    expr_lc = expr.lower()
+                    if "hitag" in expr_lc:
+                        supports_hitag_sound_id = True
+                    if "lotag" in expr_lc:
+                        supports_lotag_sound_id = True
+                    if "lotag" in expr_lc and "10000" in expr_lc and "-" in expr_lc:
+                        supports_lotag_minus_10000 = True
+
+                    if simple_symbol_re.match(expr) or simple_int_re.match(expr):
+                        static_sound_tokens.add(expr)
+                        continue
+
+                    if (
+                        "hitag" in expr_lc
+                        or "lotag" in expr_lc
+                    ):
+                        continue
+
+                    unresolved_expressions.add(expr)
+
+    return {
+        "supports_hitag_sound_id": supports_hitag_sound_id,
+        "supports_lotag_sound_id": supports_lotag_sound_id,
+        "supports_lotag_minus_10000": supports_lotag_minus_10000,
+        "static_sound_tokens": static_sound_tokens,
+        "unresolved_expressions": unresolved_expressions,
+    }
+
+
+def _add_sound_dependency_edges(edges: list, reason: str, sound_ids: set, sound_id_to_files: dict):
+    for sound_id in sorted(sound_ids):
+        files = sorted(sound_id_to_files.get(sound_id, set()))
+        edges.append(
+            {
+                "reason": reason,
+                "sound_id": sound_id,
+                "files": files,
+            }
+        )
+
+
+def build_required_sound_model(
+    temp_dir: Path,
+    script_dir: Path,
+    selected_map_files,
+    required_tiles,
+):
+    (
+        _file_to_sound_ids,
+        _sound_fields_by_id,
+        sound_id_to_files,
+        defines,
+        unresolved_sound_tokens_from_defs,
+    ) = build_sound_maps_from_cons(temp_dir)
+
+    baselines, transition_rules = load_sound_model_from_csv(defines, script_dir)
+
+    map_context = {
+        "sprite_picnums": set(),
+        "sprite_lotags": set(),
+        "sprite_hitags": set(),
+        "wall_lotags": set(),
+        "wall_hitags": set(),
+        "sector_lotags": set(),
+        "sector_hitags": set(),
+    }
+    for map_file in selected_map_files:
+        parsed = parse_map_runtime_context(map_file)
+        for key in map_context:
+            map_context[key].update(parsed[key])
+
+    con_actor_dependencies, con_global_sounds, unresolved_con_sound_tokens = build_con_runtime_sound_dependencies(temp_dir, defines)
+    c_runtime = analyze_c_sound_runtime_paths(script_dir)
+
+    required_sound_ids = set()
+    edges = []
+
+    baseline_sounds = set(baselines.get("runtime_essential", set()))
+    required_sound_ids.update(baseline_sounds)
+    _add_sound_dependency_edges(edges, "baseline:runtime_essential", baseline_sounds, sound_id_to_files)
+
+    required_tiles_set = set(required_tiles or [])
+    con_actor_added = set()
+    for trigger_tile, sound_ids in con_actor_dependencies.items():
+        if trigger_tile in required_tiles_set:
+            con_actor_added.update(sound_ids)
+            _add_sound_dependency_edges(
+                edges,
+                f"con_actor:tile:{trigger_tile}",
+                set(sound_ids),
+                sound_id_to_files,
+            )
+    required_sound_ids.update(con_actor_added)
+
+    required_sound_ids.update(con_global_sounds)
+    _add_sound_dependency_edges(edges, "con_global", con_global_sounds, sound_id_to_files)
+
+    c_static_sound_ids = set()
+    for token in c_runtime["static_sound_tokens"]:
+        resolved_id = parse_sound_id_from_token(token, defines)
+        if resolved_id is not None and resolved_id >= 0:
+            c_static_sound_ids.add(resolved_id)
+    if c_static_sound_ids:
+        required_sound_ids.update(c_static_sound_ids)
+        _add_sound_dependency_edges(edges, "c_runtime:static_calls", c_static_sound_ids, sound_id_to_files)
+
+    context_sets = {
+        "tile_present": required_tiles_set,
+        "map_sprite_pic": map_context["sprite_picnums"],
+        "map_sprite_lotag": map_context["sprite_lotags"],
+        "map_sprite_hitag": map_context["sprite_hitags"],
+        "map_sector_lotag": map_context["sector_lotags"],
+        "map_wall_lotag": map_context["wall_lotags"],
+    }
+
+    for rule in transition_rules:
+        trigger_type = rule["trigger_type"]
+        if trigger_type == "always":
+            matched = {0}
+        else:
+            source_set = context_sets.get(trigger_type)
+            if source_set is None:
+                continue
+            if rule["trigger_values"] is None:
+                matched = set(source_set)
+            else:
+                matched = set(source_set) & set(rule["trigger_values"])
+        if not matched:
+            continue
+
+        include_mode = rule["include_mode"]
+        include_ids = set()
+        if include_mode == "static":
+            include_ids.update(rule["include_values"])
+        elif include_mode == "trigger_value":
+            include_ids.update(v for v in matched if v >= 0)
+        elif include_mode == "trigger_value_minus_10000":
+            include_ids.update((v - 10000) for v in matched if v >= 10000)
+        if not include_ids:
+            continue
+
+        required_sound_ids.update(include_ids)
+        _add_sound_dependency_edges(
+            edges,
+            f"csv:{rule['category']}:{trigger_type}:{rule['name'] or 'rule'}",
+            include_ids,
+            sound_id_to_files,
+        )
+
+    c_dynamic_added = set()
+    if c_runtime["supports_hitag_sound_id"]:
+        c_dynamic_added.update(v for v in map_context["sprite_hitags"] if v >= 0)
+    if c_runtime["supports_lotag_sound_id"]:
+        c_dynamic_added.update(v for v in map_context["sprite_lotags"] if v >= 0)
+        c_dynamic_added.update(v for v in map_context["wall_lotags"] if v >= 0)
+    if c_runtime["supports_lotag_minus_10000"]:
+        c_dynamic_added.update((v - 10000) for v in map_context["sector_lotags"] if v >= 10000)
+    if c_dynamic_added:
+        required_sound_ids.update(c_dynamic_added)
+        _add_sound_dependency_edges(edges, "c_runtime:dynamic_map_tags", c_dynamic_added, sound_id_to_files)
+
+    known_sound_ids = set(sound_id_to_files.keys())
+    unknown_required_sound_ids = sorted(sound_id for sound_id in required_sound_ids if sound_id not in known_sound_ids)
+    required_sound_ids = {sound_id for sound_id in required_sound_ids if sound_id in known_sound_ids}
+
+    required_sound_files = set()
+    for sound_id in required_sound_ids:
+        for src_file in sound_id_to_files.get(sound_id, set()):
+            stem = Path(src_file).stem.lower()
+            required_sound_files.add(f"{stem}.voc")
+            required_sound_files.add(f"{stem}.wav")
+
+    unresolved = {
+        "con_sound_tokens": sorted(unresolved_con_sound_tokens),
+        "con_def_sound_tokens": sorted(unresolved_sound_tokens_from_defs),
+        "c_runtime_expressions": sorted(c_runtime["unresolved_expressions"]),
+        "unknown_required_sound_ids": unknown_required_sound_ids,
+    }
+
+    return {
+        "required_sound_ids": required_sound_ids,
+        "required_sound_files": required_sound_files,
+        "sound_id_to_files": sound_id_to_files,
+        "edges": edges,
+        "unresolved": unresolved,
+    }
+
+
+def print_required_sound_report(model: dict):
+    required_sound_ids = sorted(model["required_sound_ids"])
+    edges = model["edges"]
+
+    reason_counts = defaultdict(int)
+    for edge in edges:
+        reason_counts[edge["reason"]] += 1
+
+    print(f"[debug] required sounds: {len(required_sound_ids)} IDs")
+    for reason in sorted(reason_counts):
+        print(f"[debug]   {reason}: {reason_counts[reason]} sound(s)")
+
+    for edge in sorted(edges, key=lambda e: (e["sound_id"], e["reason"])):
+        files = ",".join(edge["files"]) if edge["files"] else "(no-file)"
+        print(f"[debug]   sound {edge['sound_id']} <= {edge['reason']} files={files}")
+
+
+def dump_required_sounds(model: dict, output_path: Path):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    sound_id_to_files = model["sound_id_to_files"]
+    with output_path.open("w", encoding="utf-8") as fh:
+        for sound_id in sorted(model["required_sound_ids"]):
+            files = ",".join(sorted(sound_id_to_files.get(sound_id, set())))
+            fh.write(f"{sound_id}\t{files}\n")
+
+
+def dump_sound_dependency_edges(model: dict, output_path: Path):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as fh:
+        fh.write("reason\tsound_id\tfiles\n")
+        for edge in sorted(model["edges"], key=lambda e: (e["reason"], e["sound_id"])):
+            fh.write(f"{edge['reason']}\t{edge['sound_id']}\t{','.join(edge['files'])}\n")
+
+
+def print_sound_model_unresolved(model: dict):
+    unresolved = model["unresolved"]
+    if unresolved["con_sound_tokens"]:
+        print(
+            f"[warn] unresolved CON sound tokens ({len(unresolved['con_sound_tokens'])}): "
+            f"{', '.join(unresolved['con_sound_tokens'][:24])}"
+        )
+    if unresolved["con_def_sound_tokens"]:
+        print(
+            f"[warn] unresolved CON definesound/sound tokens ({len(unresolved['con_def_sound_tokens'])}): "
+            f"{', '.join(unresolved['con_def_sound_tokens'][:24])}"
+        )
+    if unresolved["c_runtime_expressions"]:
+        print(
+            f"[warn] unresolved C sound expressions ({len(unresolved['c_runtime_expressions'])}): "
+            f"{', '.join(unresolved['c_runtime_expressions'][:24])}"
+        )
+    if unresolved["unknown_required_sound_ids"]:
+        print(
+            f"[warn] required sound IDs without CON file mapping ({len(unresolved['unknown_required_sound_ids'])}): "
+            f"{', '.join(str(v) for v in unresolved['unknown_required_sound_ids'][:24])}"
+        )
+
+
 
 def main():
     normalized_argv = normalize_case_insensitive_options(
         sys.argv[1:],
-        ["--pngfolder", "--map", "--includeart", "--ultraminimalmenu", "--excludefiles", "--includefiles", "--adpcmwav", "--adpcmwidth", "--maxsoundsize", "--nomenusongs", "--camerasdestructable", "--pngquant", "--pngiterations", "--resumetile", "--debug-runtime-spawns"],
+        [
+            "--pngfolder",
+            "--map",
+            "--includeart",
+            "--ultraminimalmenu",
+            "--excludefiles",
+            "--includefiles",
+            "--adpcmwav",
+            "--adpcmwidth",
+            "--maxsoundsize",
+            "--nomenusongs",
+            "--camerasdestructable",
+            "--pngquant",
+            "--pngiterations",
+            "--resumetile",
+            "--debug-runtime-spawns",
+            "--debug-sounds",
+            "--dump-required-sounds",
+            "--dump-sound-deps",
+        ],
     )
 
     parser = argparse.ArgumentParser(description="Re-package Duke Nukem 3D GRP with PNG tiles and duke3d.def")
@@ -1252,6 +1825,21 @@ def main():
         metavar="FILE",
         help="Write final required tile set (sorted, one tile per line) to FILE",
     )
+    parser.add_argument(
+        "--debug-sounds",
+        action="store_true",
+        help="Print why each sound ID/file was included by the runtime sound model",
+    )
+    parser.add_argument(
+        "--dump-required-sounds",
+        metavar="FILE",
+        help="Write final required sound IDs/files to FILE",
+    )
+    parser.add_argument(
+        "--dump-sound-deps",
+        metavar="FILE",
+        help="Write sound dependency edges (reason -> sound id -> files) to FILE",
+    )
 
     args = parser.parse_args(normalized_argv)
 
@@ -1423,8 +2011,11 @@ def main():
         print(f"[info] wrote runtime spawn dependency dump: {deps_dump_path}")
 
     required_tiles = None
+    required_sound_files = None
+    required_sound_model = None
     required_mid_files = None
     selected_map_names = set()
+    map_files_to_process = []
 
     if args.map:
         map_files_to_process = []
@@ -1578,6 +2169,37 @@ def main():
             dump_required_tiles(required_tiles, required_dump_path)
             print(f"[info] wrote required tiles dump: {required_dump_path}")
 
+        required_sound_model = build_required_sound_model(
+            temp_dir,
+            script_dir,
+            map_files_to_process,
+            required_tiles,
+        )
+        required_sound_files = set(required_sound_model["required_sound_files"])
+        print(
+            f"[info] map-based sound model: required {len(required_sound_model['required_sound_ids'])} sound IDs "
+            f"({len(required_sound_files)} file name targets including .voc/.wav pairs)"
+        )
+
+        if args.debug_sounds:
+            print_required_sound_report(required_sound_model)
+
+        if args.dump_required_sounds:
+            required_sounds_dump_path = Path(args.dump_required_sounds)
+            if not required_sounds_dump_path.is_absolute():
+                required_sounds_dump_path = (work_dir / required_sounds_dump_path).resolve()
+            dump_required_sounds(required_sound_model, required_sounds_dump_path)
+            print(f"[info] wrote required sounds dump: {required_sounds_dump_path}")
+
+        if args.dump_sound_deps:
+            sound_deps_dump_path = Path(args.dump_sound_deps)
+            if not sound_deps_dump_path.is_absolute():
+                sound_deps_dump_path = (work_dir / sound_deps_dump_path).resolve()
+            dump_sound_dependency_edges(required_sound_model, sound_deps_dump_path)
+            print(f"[info] wrote sound dependency dump: {sound_deps_dump_path}")
+
+        print_sound_model_unresolved(required_sound_model)
+
     # arttool expects lowercase tilesXXX.art filenames for files we process.
     if selected_tile_files:
         for tile_file_index in sorted(selected_tile_files):
@@ -1610,7 +2232,7 @@ def main():
         emitted_anim_ranges = []
 
         if args.adpcmwav:
-            voc_sound_ids, sound_fields_by_id = build_sound_maps_from_cons(temp_dir)
+            voc_sound_ids, sound_fields_by_id, _sound_id_to_files, _sound_defines, _unresolved_sound_tokens = build_sound_maps_from_cons(temp_dir)
             emitted_sound_defs = 0
 
             if resume_tile >= 0:
@@ -1619,6 +2241,13 @@ def main():
                     voc_name = wav_file.stem.lower() + ".voc"
                     wav_name = wav_file.name.lower()
                     force_include_audio = voc_name in included_audio_files or wav_name in included_audio_files
+                    if (
+                        required_sound_files is not None
+                        and wav_name not in required_sound_files
+                        and voc_name not in required_sound_files
+                        and not force_include_audio
+                    ):
+                        continue
                     replaced_voc_files.add(voc_name)
                     if wav_name in excluded_files and not force_include_audio:
                         print(
@@ -1695,8 +2324,15 @@ def main():
                     break  # skip all VOC conversion on resume
 
                 wav_name = f"{voc_file.stem.lower()}.wav"
-                wav_path = temp_dir / wav_name
                 force_include_audio = voc_file.name.lower() in included_audio_files or wav_name in included_audio_files
+                if (
+                    required_sound_files is not None
+                    and voc_file.name.lower() not in required_sound_files
+                    and wav_name not in required_sound_files
+                    and not force_include_audio
+                ):
+                    continue
+                wav_path = temp_dir / wav_name
 
                 if args.adpcmwidth is None:
                     ffmpeg_proc = subprocess.run(
@@ -2220,6 +2856,13 @@ def main():
             or f.name.lower() in selected_map_names
         ]
 
+    if required_sound_files is not None:
+        files = [
+            f for f in files
+            if f.suffix.lower() not in {".voc", ".wav"}
+            or f.name.lower() in required_sound_files
+        ]
+
     if required_mid_files is not None:
         files = [
             f for f in files
@@ -2241,6 +2884,13 @@ def main():
         forced_included_paths = []
         for include_name in sorted(included_files):
             include_path = find_file_case_insensitive(temp_dir, include_name)
+            if include_path is None and args.adpcmwav:
+                stem, suffix = os.path.splitext(include_name)
+                if suffix.lower() == ".wav":
+                    source_voc_name = f"{stem}.voc"
+                    source_voc_path = find_file_case_insensitive(temp_dir, source_voc_name)
+                    if source_voc_path is not None:
+                        include_path = temp_dir / f"{stem}.wav"
             if include_path is None:
                 missing_included_files.append(include_name)
             else:

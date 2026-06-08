@@ -1,0 +1,15 @@
+category,trigger_type,trigger,include,scope,notes
+map_actor_voice,tile_present,LIZTROOP|LIZTROOPRUNNING|LIZTROOPSHOOT|LIZTROOPJETPACK|LIZTROOPONTOILET|LIZTROOPDUCKING,LIZTROOP_GROWL|LIZTROOP_TALK1|LIZTROOP_TALK2|LIZTROOP_TALK3|LIZARD_BEG,map,Trooper family chatter and aggro
+map_actor_voice,tile_present,PIGCOP|PIGCOPDIVE,PIG_RECOG|PIG_ATTACK|PIG_PAIN|PIG_DYING,map,Pig cop vocal set
+map_actor_voice,tile_present,LIZMAN|LIZMANSPITTING|LIZMANJUMP|LIZMANFEEDING,CAPT_RECOG|CAPT_ATTACK|CAPT_PAIN|CAPT_DYING,map,Lizman vocal set
+map_actor_voice,tile_present,NEWBEAST|NEWBEASTSTAYPUT,NEWBEAST_ROAM|NEWBEAST_RECOG|NEWBEAST_ATTACK|NEWBEAST_PAIN,map,Newbeast runtime calls
+map_actor_voice,tile_present,OCTABRAIN|OCTABRAINSTAYPUT,OCTA_ROAM|OCTA_RECOG|OCTA_ATTACK1|OCTA_ATTACK2|OCTA_PAIN|OCTA_DYING,map,Octabrain runtime calls
+map_actor_voice,tile_present,COMMANDER|COMMANDERSTAYPUT,COMM_RECOG|COMM_ATTACK|COMM_PAIN|COMM_DYING,map,Commander runtime calls
+map_actor_voice,tile_present,DRONE,DRON_RECOG|DRON_ATTACK1|DRON_ATTACK2|DRON_ATTACK3|DRON_PAIN,map,Drone runtime calls
+map_actor_voice,tile_present,RECON,RECO_ROAM|RECO_ATTACK|RECO_PAIN|RECO_DYING,map,Recon runtime calls
+map_actor_voice,tile_present,BOSS1|BOSS2|BOSS3,BOS1_ROAM|BOS1_RECOG|BOS1_ATTACK1|BOS1_ATTACK2|BOS1_DYING|BOS2_RECOG|BOS2_ATTACK|BOS2_DYING|BOS3_RECOG|BOS3_ATTACK1|BOS3_ATTACK2|BOS3_DYING,map,Boss runtime calls
+map_actor_voice,tile_present,SHARK,DUKE_UNDERWATER,map,Shark maps imply underwater breath loops
+map_interactive_fx,map_sprite_pic,TOILET|STALL|HYDRENT,FLUSH_TOILET|WATER_GURGLE|SHORT_CIRCUIT,map,Interactive bathroom/water fixtures
+map_interactive_fx,map_sprite_pic,CAMERA1|CAMERALIGHT,MONITOR_ACTIVE|NITEVISION_ONOFF,map,Camera monitor and vision toggles
+map_dynamic_hitag,map_sprite_hitag,*,@trigger_value,map,C runtime can play sprite hitag as sound id
+map_dynamic_sector_lotag,map_sector_lotag,*,@trigger_value_minus_10000,map,Sector lotag-10000 custom sounds
