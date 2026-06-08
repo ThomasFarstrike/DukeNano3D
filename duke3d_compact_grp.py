@@ -660,93 +660,20 @@ def build_ultra_minimal_menu_allowlist(temp_dir: Path, script_dir: Path):
     return set(baselines.get("menu_ultra", set()))
 
 
-def expand_required_tiles_with_enemy_runtime_ranges(required_tiles):
-    """
-    Expand map-derived tiles with enemy runtime frame ranges.
-
-    Why this exists:
-      `mapinfo` reports tiles directly present in map sectors/walls/sprites,
-      but many enemies animate through additional consecutive frames at runtime.
-      EDuke32 handles this in premap.cpp::cacheTilesForSprite().
-
-    We mirror those enemy-specific ranges here so map-compacted builds still have
-    walking/attack animation frames.
-    """
+def expand_required_tiles_with_enemy_runtime_ranges(required_tiles, temp_dir: Path, script_dir: Path):
+    """Expand map-derived tiles with enemy runtime spans loaded from CSV model files."""
     expanded = set(required_tiles)
+    if not expanded:
+        return expanded
 
-    # Trigger sets correspond to enemy entry tiles that can appear in map sprites.
-    # Added ranges intentionally match cacheTilesForSprite() behavior.
-    enemy_runtime_groups = [
-        {
-            "name": "LIZTROOP family runtime frames",
-            "triggers": {1680, 1681, 1715, 1725, 1741, 1744},  # LIZTROOP* variants
-            "ranges": [
-                (1680, 1680 + 71),  # LIZTROOP .. LIZTROOP+71
-                (1768, 1776 + 2),   # HEADJIB1 .. LEGJIB1+2
-            ],
-        },
-        {
-            "name": "NEWBEAST family runtime frames",
-            "triggers": {4610, 4611},  # NEWBEAST / NEWBEASTSTAYPUT
-            "ranges": [
-                (4610, 4610 + 89),  # NEWBEAST .. NEWBEAST+89
-            ],
-        },
-        {
-            "name": "BOSS/SHARK runtime frames",
-            "triggers": {1550, 2630, 2710, 2760},  # SHARK, BOSS1..3
-            "ranges": [
-                (1550, 1550 + 29),  # SHARK .. SHARK+29
-                (2630, 2630 + 29),  # BOSS1 .. BOSS1+29
-                (2710, 2710 + 29),  # BOSS2 .. BOSS2+29
-                (2760, 2760 + 29),  # BOSS3 .. BOSS3+29
-            ],
-        },
-        {
-            "name": "OCTABRAIN/COMMANDER runtime frames",
-            "triggers": {1820, 1821, 1920, 1921},  # OCTABRAIN*/COMMANDER*
-            "ranges": [
-                (1820, 1820 + 37),  # OCTABRAIN .. OCTABRAIN+37
-                (1920, 1920 + 37),  # COMMANDER .. COMMANDER+37
-            ],
-        },
-        {
-            "name": "RECON runtime frames",
-            "triggers": {1960},
-            "ranges": [
-                (1960, 1960 + 12),  # RECON .. RECON+12
-            ],
-        },
-        {
-            "name": "PIGCOP runtime frames",
-            "triggers": {2000, 2045},  # PIGCOP / PIGCOPDIVE
-            "ranges": [
-                (2000, 2000 + 60),  # PIGCOP .. PIGCOP+60
-            ],
-        },
-        {
-            "name": "LIZMAN runtime frames",
-            "triggers": {2120, 2150, 2160, 2165},  # LIZMAN* variants
-            "ranges": [
-                (2120, 2120 + 79),  # LIZMAN .. LIZMAN+79
-                (2201, 2209 + 2),   # LIZMANHEAD1 .. LIZMANLEG1+2
-            ],
-        },
-        {
-            "name": "DRONE runtime frames",
-            "triggers": {1880},
-            "ranges": [
-                (1880, 1880 + 9),   # DRONE .. DRONE+9
-            ],
-        },
-    ]
+    defines = build_tile_defines_from_cons(temp_dir)
+    _trigger_span_rules, transition_rules = load_tile_runtime_rules_from_csv(defines, script_dir)
 
-    for group in enemy_runtime_groups:
-        if not (expanded & group["triggers"]):
+    for rule in transition_rules:
+        if rule["category"] != "enemy_runtime":
             continue
-
-        for start, end in group["ranges"]:
-            expanded.update(range(start, end + 1))
+        if expanded & rule["triggers"]:
+            expanded.update(rule["includes"])
 
     return expanded
 
@@ -1566,7 +1493,7 @@ def main():
                 f"(total now {len(required_tiles)})"
             )
 
-        enemy_expanded_tiles = expand_required_tiles_with_enemy_runtime_ranges(required_tiles)
+        enemy_expanded_tiles = expand_required_tiles_with_enemy_runtime_ranges(required_tiles, temp_dir, script_dir)
         enemy_added_tiles = len(enemy_expanded_tiles) - len(required_tiles)
         if enemy_added_tiles > 0:
             required_tiles = enemy_expanded_tiles
