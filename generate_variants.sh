@@ -5,6 +5,7 @@
 # 0095 is the night sky with stars
 # 0989-0993 are the skyline, replace with something smaller? or something repeating?
 # WIND54.VOC is also playing at the start of the game but not that interesting
+# cool: FIRE09.VOC,38k
 EXCLUDE_CSVS=$(cat <<'EOF'
 TILE1102.PNG,some high def image
 TILE2445.PNG,help screen can be omitted in this pack
@@ -34,7 +35,6 @@ AMB81B.VOC,50k
 WIND54.VOC
 WARAMB23.VOC
 WARAMB13.VOC
-FIRE09.VOC,38k
 DSCREM38.VOC,unused
 PAIN13.VOC,unused
 PAIN28.VOC,unused
@@ -53,20 +53,21 @@ done <<EOF
 $EXCLUDE_CSVS
 EOF
 
+# Only needed when using --maxsoundsize and still wanting these must haves:
 # from full 1.3:
 #flyby.voc,35K flying by shotgun shooters
 # DIESOB03.WAV,15K die you son of a bitch - only used when boss is killed
-
+# rarely used:
+#HAIL01.WAV,19K hail to the king baby - random taunt
+#LETGOD01.WAV,let god sort 'em out - random taunt
 # sizes below are uncompressed VOC size:
 INCLUDE_CSVS=$(cat <<'EOF'
 SHOTGUN7.WAV,52KB shotgun sound is important for gameplay
 PAY02.WAV,32k leave it because it's the intro "Damn those aliens are gonna pay for shooting up my ride"
 BOMBEXPL.WAV,20K bomb explosion used for spaceship crash, exploding bottles
 AHMUCH03.WAV,20K much better peeing sound
-HAIL01.WAV,19K hail to the king baby - random taunt
 WAITIN03.WAV,16K what are you waiting for christmas - when inactive
 NEEDED03.WAV,ah I needed that - when low health becomes higher
-LETGOD01.WAV,let god sort 'em out - random taunt
 GASPS07.WAV,duke in pain - 16215
 MICE3.WAV,14K crawling mice - not really needed?
 FIRE09.WAV,9K beginning and helps for feeling hot
@@ -88,6 +89,27 @@ done <<EOF
 $INCLUDE_CSVS
 EOF
 
+INCLUDE_CSVS_TINY=$(cat <<'EOF'
+SHOTGUN7.WAV,52KB shotgun sound is important for gameplay
+PAY02.WAV,32k leave it because it's the intro "Damn those aliens are gonna pay for shooting up my ride"
+BOMBEXPL.WAV,20K bomb explosion used for spaceship crash, exploding bottles
+EOF
+)
+
+INCLUDE_ARGS_TINY=()
+while IFS= read -r csv; do
+    echo "$csv"
+    [ -z "$csv" ] && continue
+    filename=$(printf '%s' "$csv" | cut -d',' -f1 | tr -d '[:space:]')
+    echo "$filename"
+    [ -z "$filename" ] && continue
+    INCLUDE_ARGS_TINY+=("--includefiles" "$filename")
+    echo "$INCLUDE_ARGS_TINY"
+    echo "${INCLUDE_ARGS_TINY[@]}"
+done <<EOF
+$INCLUDE_CSVS_TINY
+EOF
+
 INPUT=input/DUKE3D_v1.3d_shareware.grp
 
 OUTPUT_DIR="outputs"
@@ -100,7 +122,7 @@ PNGS=precalculated_pngs_shareware_1.3D/
 # See the end
 
 # All levels, nearly complete:
-python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" "$INPUT" --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-6_nearcomplete.grp"
+python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" "$INPUT" --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-6_nearcomplete.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1-6_nearcomplete.grp.zip" "$OUTPUT_DIR/E1L1-6_nearcomplete.grp"
 
 # Some compromise:
@@ -108,13 +130,13 @@ python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpc
 zip -j -9 "$OUTPUT_DIR/E1L1-6_compromise.grp.zip" "$OUTPUT_DIR/E1L1-6_compromise.grp"
 
 # All levels but tiny:
-python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" "$INPUT" --adpcmwidth 2 --maxsoundsize 5000 --nomenusongs --output "$OUTPUT_DIR/E1L1-6_tiny.grp"
+python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS_TINY[@]}" "$INPUT" --adpcmwidth 2 --maxsoundsize 5000 --nomenusongs --output "$OUTPUT_DIR/E1L1-6_tiny.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1-6_tiny.grp.zip" "$OUTPUT_DIR/E1L1-6_tiny.grp"
 
 
 
 # 3 levels, near complete:
-python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP,E1L3.MAP "$INPUT" --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-3_nearcomplete.grp"
+python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP,E1L3.MAP "$INPUT" --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-3_nearcomplete.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1-3_nearcomplete.grp.zip" "$OUTPUT_DIR/E1L1-3_nearcomplete.grp"
 
 # 3 levels, compromise:
@@ -128,7 +150,7 @@ python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpc
 zip -j -9 "$OUTPUT_DIR/E1L1-2.grp.zip" "$OUTPUT_DIR/E1L1-2.grp"
 
 # 2 levels, near complete:
-python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP "$INPUT" --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-2_nearcomplete.grp"
+python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP "$INPUT" --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-2_nearcomplete.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1-2_nearcomplete.grp.zip" "$OUTPUT_DIR/E1L1-2_nearcomplete.grp"
 
 # 2 levels with compromise:
@@ -146,7 +168,7 @@ python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpc
 zip -j -9 "$OUTPUT_DIR/E1L1_compromise.grp.zip" "$OUTPUT_DIR/E1L1_compromise.grp"
 
 # One level, tiny:
-python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" --map E1L1.MAP "${EXCLUDE_ARGS[@]}" "$INPUT" --adpcmwidth 2 --maxsoundsize 5000 --nomenusongs --output "$OUTPUT_DIR/E1L1_tiny.grp"
+python3 duke3d_compact_grp.py --camerasdestructable --optipng --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" --map E1L1.MAP "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS_TINY[@]}" "$INPUT" --adpcmwidth 2 --maxsoundsize 5000 --nomenusongs --output "$OUTPUT_DIR/E1L1_tiny.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1_tiny.grp.zip" "$OUTPUT_DIR/E1L1_tiny.grp"
 
 # Current minimal, no sounds, just to establish lower bound:
