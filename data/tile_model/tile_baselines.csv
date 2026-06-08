@@ -1,0 +1,52 @@
+category,item,scope,notes
+runtime_essential,CROSSHAIR,map,Player HUD crosshair
+runtime_essential,FIRSTGUN..FIRSTGUN+6,map,Pistol including reload sequence
+runtime_essential,SHELL..SHELL+1,map,Pistol ejected shells
+runtime_essential,CHAINGUN..CHAINGUN+7,map,Chaingun view weapon tiles
+runtime_essential,RPGGUN..RPGGUN+2,map,RPG view weapon tiles
+runtime_essential,FREEZE..FREEZE+5,map,Freeze cannon view weapon tiles
+runtime_essential,SHRINKER-2..SHRINKER+5,map,Shrinker or expander view weapon and crystal frames
+runtime_essential,HANDHOLDINGLASER..HANDHOLDINGACCESS,map,Tripbomb hand sequence
+runtime_essential,HANDREMOTE..HANDREMOTE+6,map,Remote hand sequence
+runtime_essential,SHOTGUN..SHOTGUN+6,map,Shotgun view weapon tiles
+runtime_essential,DEVISTATOR..DEVISTATOR+1,map,Devastator left and right tiles
+runtime_essential,2521..2522,map,Knee or quick-kick HUD sequence
+runtime_essential,FIST,map,End-of-level hand overlay
+runtime_essential,0..60,map,Startup baseline tiles
+runtime_essential,FOOTPRINTS..FOOTPRINTS+2,map,Footprints
+runtime_essential,1233..1235,map,Runtime map-adjacent effects
+runtime_essential,TRANSPORTERBEAM..TRANSPORTERBEAM+5,map,Transporter beam frames
+runtime_essential,1332..1333,map,Avoid fallback to TILE1330
+runtime_essential,COOLEXPLOSION1..COOLEXPLOSION1+20,map,Cool explosion runtime span
+runtime_essential,1400..1527,map,Large reported missing runtime span
+runtime_essential,BLOOD..BLOOD+3,map,Blood effect sequence
+runtime_essential,FIRELASER,map,Firelaser projectile
+runtime_essential,FREEZEBLAST..FREEZEBLAST+2,map,Freezeblast sequence
+runtime_essential,SHRINKSPARK..SHRINKSPARK+3,map,Shrinkspark sequence
+runtime_essential,MORTER..MORTER+3,map,Morter sequence
+runtime_essential,SHRINKEREXPLOSION..SHRINKEREXPLOSION+3,map,Shrinker explosion sequence
+runtime_essential,EXPLOSION2..EXPLOSION2+20,map,Explosion2 sequence
+runtime_essential,JIBS1..JIBS5+4,map,Jibs set one through five
+runtime_essential,BURNING..BURNING+13,map,Burning sequence one
+runtime_essential,JIBS6..JIBS6+7,map,Jibs six sequence
+runtime_essential,BURNING2..BURNING2+13,map,Burning sequence two
+runtime_essential,CRACKKNUCKLES..CRACKKNUCKLES+3,map,Crack knuckles sequence
+runtime_essential,SMALLSMOKE..SMALLSMOKE+3,map,Small smoke sequence
+runtime_essential,SCRAP1..SCRAP1+28,map,Scrap sequence
+runtime_essential,2448..2451,map,Grow spark sequence
+runtime_essential,SHOTSPARK1..SHOTSPARK1+3,map,Shot spark sequence
+runtime_essential,RPG..RPG+6,map,RPG projectile frames
+menu_ultra,MENUSCREEN..DUKECAR-1,map,Menu screen and related range
+menu_ultra,SPINNINGNUKEICON..SPINNINGNUKEICON+6,map,Spinning nuke icon frames
+menu_ultra,BIGFNTCURSOR|SMALLFNTCURSOR,map,Big and small font cursors
+menu_ultra,STARTALPHANUM..ENDALPHANUM,map,Menu small font atlas
+menu_ultra,BIGALPHANUM-11..BIGALPHANUM+81,map,Menu big font atlas
+menu_ultra,MINIFONT..MINIFONT+92,map,Mini font atlas
+menu_ultra,1141,map,Menu background image
+menu_ultra,F1HELP,map,F1 help image
+menu_ultra,INGAMEDUKETHREEDEE,map,In-game Duke 3D title
+menu_ultra,2503,map,Plutopak sprite variant
+menu_ultra,2504..2506,map,Credits backgrounds
+menu_ultra,BONUSSCREEN,map,Bonus screen
+menu_ultra,TEXTSTORY|3281,map,Text story and load screen
+menu_ultra,2492|2493|2497|2498,map,Startup logo overlays

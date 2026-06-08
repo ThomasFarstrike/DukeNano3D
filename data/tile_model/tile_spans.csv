@@ -1,0 +1,11 @@
+category,trigger,length,scope,notes
+sprite_precache,CAMERA1|NUKEBARREL,5,map,Camera and nuke barrel runtime tiles
+sprite_precache,OOZFILTER|EXPLODINGBARREL|SEENINE,3,map,Exploding barrel and hazard variants
+sprite_precache,RUBBERCAN,2,map,Rubber can wobble variants
+sprite_precache,TOILETWATER,4,map,Toilet water animation chunk
+sprite_precache,ATOMICHEALTH,14,map,Atomic health spin frames
+sprite_precache,FEMPIC1,44,map,FEMPIC1 runtime span
+spawn_span,RAT,5,map,Spawned rat runtime frames
+spawn_span,TRASH,7,map,Spawned trash/newspaper runtime frames
+spawn_span,GREENSLIME,8,map,Spawned greenslime runtime frames
+spawn_span,TRANSPORTERSTAR,6,map,Transporter star runtime frames
