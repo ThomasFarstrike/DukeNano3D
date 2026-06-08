@@ -713,7 +713,7 @@ def expand_required_tiles_with_enemy_runtime_ranges(required_tiles):
     return expanded
 
 
-def expand_required_tiles_with_sprite_precache_ranges(required_tiles):
+def expand_required_tiles_with_sprite_precache_ranges(required_tiles, spawnmodel: str = "hybrid"):
     """
     Mirror non-PICANM sprite pre-cache ranges from premap.cpp::cacheTilesForSprite().
 
@@ -785,39 +785,6 @@ def expand_required_tiles_with_sprite_precache_ranges(required_tiles):
             # TOILETBROKE(568), STALLBROKE(572), TOILETWATER..+3(921..924), BROKEFIREHYDRENT(938)
         },
         {
-            "name": "Rubber can explosion rat spawns",
-            # GAME.CON state rats is called from RUBBERCAN when hit by RADIUSEXPLOSION.
-            # Rat sprites use a short runtime frame span that may not appear directly in map data.
-            "triggers": {1062},              # RUBBERCAN
-            "tiles": set(range(1267, 1272)), # RAT .. RAT+4
-        },
-        {
-            "name": "Egg hatch slime frames",
-            # GAME.CON actor EGG opens and spawns GREENSLIME.
-            # Keep the full GREENSLIME frame span even if no slime sprite is placed in-map.
-            "triggers": {675},               # EGG
-            "tiles": set(range(2370, 2378)),# GREENSLIME .. GREENSLIME+7
-        },
-        {
-            "name": "Trooper hide/respawn teleport effects",
-            # GAME.CON troophidestate and enemy respawn paths spawn TRANSPORTERSTAR and
-            # FRAMEEFFECT1_13CON from LIZTROOP family runtime states.
-            "triggers": {1680, 1681, 1715, 1725, 1741, 1744},  # LIZTROOP* variants
-            "tiles": set(range(1630, 1636)) | {3999},  # TRANSPORTERSTAR..+5 + FRAMEEFFECT1_13CON
-        },
-        {
-            "name": "Lizman random feces spawn",
-            # GAME.CON lizthinkstate can spawn FECES from LIZMAN behavior.
-            "triggers": {2120, 2150, 2160, 2165},  # LIZMAN* variants
-            "tiles": {2200},                 # FECES
-        },
-        {
-            "name": "Trash blowing paper frames",
-            # TRASH sprites (newspaper/debris) use a short frame span at runtime.
-            "triggers": {1272},              # TRASH
-            "tiles": set(range(1272, 1279)), # TRASH .. TRASH+6
-        },
-        {
             "name": "Switch on/off partner states (base+1)",
             # From sector.cpp switch handling (REST_SWITCH_CASES + ACCESSSWITCH_CASES + DIPSWITCH_LIKE_CASES)
             "triggers": {130, 132, 134, 136, 138, 140, 162, 164, 166, 168, 170, 712},
@@ -854,6 +821,46 @@ def expand_required_tiles_with_sprite_precache_ranges(required_tiles):
             "tiles": {360, 361, 362, 363, 4144, 4145, 4147},
         },
     ]
+
+    # Manual spawn-oriented additions that can be replaced by CON-derived auto spawn modeling.
+    runtime_spawn_whitelist_groups = [
+        {
+            "name": "Rubber can explosion rat spawns",
+            # GAME.CON state rats is called from RUBBERCAN when hit by RADIUSEXPLOSION.
+            # Rat sprites use a short runtime frame span that may not appear directly in map data.
+            "triggers": {1062},              # RUBBERCAN
+            "tiles": set(range(1267, 1272)), # RAT .. RAT+4
+        },
+        {
+            "name": "Egg hatch slime frames",
+            # GAME.CON actor EGG opens and spawns GREENSLIME.
+            # Keep the full GREENSLIME frame span even if no slime sprite is placed in-map.
+            "triggers": {675},               # EGG
+            "tiles": set(range(2370, 2378)), # GREENSLIME .. GREENSLIME+7
+        },
+        {
+            "name": "Trooper hide/respawn teleport effects",
+            # GAME.CON troophidestate and enemy respawn paths spawn TRANSPORTERSTAR and
+            # FRAMEEFFECT1_13CON from LIZTROOP family runtime states.
+            "triggers": {1680, 1681, 1715, 1725, 1741, 1744},  # LIZTROOP* variants
+            "tiles": set(range(1630, 1636)) | {3999},  # TRANSPORTERSTAR..+5 + FRAMEEFFECT1_13CON
+        },
+        {
+            "name": "Lizman random feces spawn",
+            # GAME.CON lizthinkstate can spawn FECES from LIZMAN behavior.
+            "triggers": {2120, 2150, 2160, 2165},  # LIZMAN* variants
+            "tiles": {2200},                 # FECES
+        },
+        {
+            "name": "Trash blowing paper frames",
+            # TRASH sprites (newspaper/debris) use a short frame span at runtime.
+            "triggers": {1272},              # TRASH
+            "tiles": set(range(1272, 1279)), # TRASH .. TRASH+6
+        },
+    ]
+
+    if spawnmodel in {"manual", "hybrid"}:
+        runtime_state_groups.extend(runtime_spawn_whitelist_groups)
 
     for group in runtime_state_groups:
         if not (expanded & group["triggers"]):
@@ -1192,6 +1199,34 @@ def print_runtime_spawn_dependency_report(temp_dir: Path):
         )
 
 
+def dump_runtime_spawn_dependency_report(temp_dir: Path, output_path: Path):
+    defines = build_tile_defines_from_cons(temp_dir)
+    dependencies = build_runtime_spawn_tile_dependencies(temp_dir)
+
+    names_by_tile = defaultdict(list)
+    for name, tile in defines.items():
+        if tile >= 0:
+            names_by_tile[tile].append(name.upper())
+    for tile in names_by_tile:
+        names_by_tile[tile].sort()
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as fh:
+        fh.write(f"trigger_count={len(dependencies)}\n")
+        for trigger_tile in sorted(dependencies):
+            trigger_label = _format_tile_with_name(trigger_tile, names_by_tile)
+            spawned_tiles = sorted(dependencies[trigger_tile])
+            spawned_label = ", ".join(_format_tile_with_name(t, names_by_tile) for t in spawned_tiles)
+            fh.write(f"{trigger_label} -> {spawned_label}\n")
+
+
+def dump_required_tiles(required_tiles, output_path: Path):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as fh:
+        for tile in sorted(required_tiles or []):
+            fh.write(f"{tile}\n")
+
+
 
 def main():
     normalized_argv = normalize_case_insensitive_options(
@@ -1362,6 +1397,25 @@ def main():
             "spawn/debris/guts paths. Useful to audit map-compaction runtime tile coverage."
         ),
     )
+    parser.add_argument(
+        "--spawnmodel",
+        choices=["manual", "auto", "hybrid"],
+        default="hybrid",
+        help=(
+            "Runtime spawn dependency mode for map builds: "
+            "manual = whitelist-only, auto = CON-derived-only, hybrid = union of both (default)."
+        ),
+    )
+    parser.add_argument(
+        "--dump-runtime-spawn-deps",
+        metavar="FILE",
+        help="Write computed CON runtime spawn dependencies to FILE",
+    )
+    parser.add_argument(
+        "--dump-required-tiles",
+        metavar="FILE",
+        help="Write final required tile set (sorted, one tile per line) to FILE",
+    )
 
     args = parser.parse_args(normalized_argv)
 
@@ -1525,6 +1579,13 @@ def main():
     if args.debug_runtime_spawns:
         print_runtime_spawn_dependency_report(temp_dir)
 
+    if args.dump_runtime_spawn_deps:
+        deps_dump_path = Path(args.dump_runtime_spawn_deps)
+        if not deps_dump_path.is_absolute():
+            deps_dump_path = (work_dir / deps_dump_path).resolve()
+        dump_runtime_spawn_dependency_report(temp_dir, deps_dump_path)
+        print(f"[info] wrote runtime spawn dependency dump: {deps_dump_path}")
+
     required_tiles = None
     required_mid_files = None
     selected_map_names = set()
@@ -1621,7 +1682,7 @@ def main():
         print("[warn] No .MAP files found in extracted GRP; skipping map-based tile restriction")
 
     if required_tiles is not None:
-        sprite_precache_tiles = expand_required_tiles_with_sprite_precache_ranges(required_tiles)
+        sprite_precache_tiles = expand_required_tiles_with_sprite_precache_ranges(required_tiles, args.spawnmodel)
         sprite_precache_added = len(sprite_precache_tiles) - len(required_tiles)
         if sprite_precache_added > 0:
             required_tiles = sprite_precache_tiles
@@ -1630,14 +1691,15 @@ def main():
                 f"(total now {len(required_tiles)})"
             )
 
-        con_spawn_tiles = expand_required_tiles_with_con_spawn_dependencies(required_tiles, temp_dir)
-        con_spawn_added = len(con_spawn_tiles) - len(required_tiles)
-        if con_spawn_added > 0:
-            required_tiles = con_spawn_tiles
-            print(
-                f"[info] map-based tile set: added {con_spawn_added} CON runtime-spawn tiles "
-                f"(total now {len(required_tiles)})"
-            )
+        if args.spawnmodel in {"auto", "hybrid"}:
+            con_spawn_tiles = expand_required_tiles_with_con_spawn_dependencies(required_tiles, temp_dir)
+            con_spawn_added = len(con_spawn_tiles) - len(required_tiles)
+            if con_spawn_added > 0:
+                required_tiles = con_spawn_tiles
+                print(
+                    f"[info] map-based tile set: added {con_spawn_added} CON runtime-spawn tiles "
+                    f"(total now {len(required_tiles)})"
+                )
 
         runtime_essential_tiles = build_runtime_essentials_allowlist()
         runtime_essential_expanded = set(required_tiles)
@@ -1673,6 +1735,13 @@ def main():
                 f"[info] required tiles finalization: added {final_anim_added} animation-frame tiles "
                 f"after merging all tile sources (total now {len(required_tiles)})"
             )
+
+        if args.dump_required_tiles:
+            required_dump_path = Path(args.dump_required_tiles)
+            if not required_dump_path.is_absolute():
+                required_dump_path = (work_dir / required_dump_path).resolve()
+            dump_required_tiles(required_tiles, required_dump_path)
+            print(f"[info] wrote required tiles dump: {required_dump_path}")
 
     # arttool expects lowercase tilesXXX.art filenames for files we process.
     if selected_tile_files:
