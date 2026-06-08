@@ -1704,10 +1704,12 @@ def main():
     )
     parser.add_argument(
         "--pngquant",
-        action="store_true",
+        metavar="QUALITY",
+        type=str,
         help=(
-            "Run ~/software/pngquant --quality 10 --speed 1 --posterize 3 on each generated PNG "
-            "(applied after convert, before zopflipng)"
+            "Run ~/software/pngquant --quality QUALITY --speed 1 --posterize 2 on each generated PNG "
+            "(applied after convert, before zopflipng). QUALITY is a single value or MIN-MAX range, "
+            "e.g. --pngquant 70 or --pngquant 10-70."
         ),
     )
     parser.add_argument(
@@ -2560,9 +2562,9 @@ def main():
                         pngquant_proc = subprocess.run(
                             [
                                 str(pngquant),
-                                "--quality", "10",
+                                "--quality", args.pngquant,
                                 "--speed", "1",
-                                "--posterize", "3",
+                                "--posterize", "2",
                                 "--ext", ".PNG",
                                 "--force",
                                 str(out_png),
