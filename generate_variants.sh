@@ -119,7 +119,8 @@ mkdir -p "$OUTPUT_DIR"
 PNGS=precalculated_pngs_shareware_1.3D/
 
 #PNGQUANTS=precalculated_pngs_pngquant/
-PNGQUANTS=precalculated_pngs_pngquant_69-71_2/
+#PNGQUANTS=precalculated_pngs_pngquant_69-71_2/
+PNGQUANTS=precalculated_pngs_pngquant_40-71_2/
 
 PNGQUANTS_AGRESSIVE=precalculated_pngs_pngquant_10_3/
 
