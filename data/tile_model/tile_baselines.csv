@@ -36,11 +36,11 @@ runtime_essential,SCRAP1..SCRAP1+28,map,Scrap sequence
 runtime_essential,2448..2451,map,Grow spark sequence
 runtime_essential,SHOTSPARK1..SHOTSPARK1+3,map,Shot spark sequence
 runtime_essential,RPG..RPG+6,map,RPG projectile frames
+runtime_essential,STARTALPHANUM..ENDALPHANUM,map,Menu small font atlas
+runtime_essential,BIGALPHANUM-11..BIGALPHANUM+81,map,Menu big font atlas
 menu_ultra,MENUSCREEN..DUKECAR-1,map,Menu screen and related range
 menu_ultra,SPINNINGNUKEICON..SPINNINGNUKEICON+6,map,Spinning nuke icon frames
 menu_ultra,BIGFNTCURSOR|SMALLFNTCURSOR,map,Big and small font cursors
-menu_ultra,STARTALPHANUM..ENDALPHANUM,map,Menu small font atlas
-menu_ultra,BIGALPHANUM-11..BIGALPHANUM+81,map,Menu big font atlas
 menu_ultra,MINIFONT..MINIFONT+92,map,Mini font atlas
 menu_ultra,1141,map,Menu background image
 menu_ultra,F1HELP,map,F1 help image
