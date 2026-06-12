@@ -2705,6 +2705,65 @@ def main():
             print("[error] Should we be aborting to avoid silently skipping required tiles?")
             #return 1
 
+        # When --onlysmaller includes ART files in the output, purge non-required
+        # tiles from ART so they don't bloat the final GRP. Only required tiles
+        # (map-derived, runtime-essential, menu, animation-frames) should remain.
+        if args.onlysmaller and required_tiles is not None and not selected_tile_files:
+            removed_non_required = 0
+            for art_file in art_files:
+                name = art_file.stem
+                digits = "".join(ch for ch in name if ch.isdigit())
+                tile_index = int(digits) if digits else 0
+                for tile_nr in range(256):
+                    global_tile = tile_index * 256 + tile_nr
+                    if global_tile not in required_tiles:
+                        subprocess.run(
+                            [str(arttool), "rmtile", str(global_tile)],
+                            cwd=temp_dir,
+                            check=False,
+                            capture_output=True,
+                            text=True,
+                        )
+                        removed_non_required += 1
+            if removed_non_required > 0:
+                print(f"[info] --onlysmaller: removed {removed_non_required} non-required tiles from ART files")
+
+        # Remove ART files that no longer carry any tile data.  We parse the
+        # offset table directly: if every offset entry is 0 the file is all-
+        # header and can be dropped, even if arttool left stale padding.
+        if args.onlysmaller and required_tiles is not None and not selected_tile_files:
+            empty_removed = 0
+            for art_file in list(art_files):
+                if not art_file.exists():
+                    continue
+                raw = art_file.read_bytes()
+                if len(raw) < 16:
+                    continue
+                # ART format:
+                #   0-3  version (= 1)
+                #   4-7  numtiles (ignored by reader; writer always sets to 0)
+                #   8-11 first tile number
+                #  12-15 last tile number
+                #  16+  tilesizx[i] (2B each), tilesizy[i] (2B each),
+                #       picanm[i] (4B each), then pixel data.
+                start_tile = struct.unpack_from("<I", raw, 8)[0]
+                end_tile   = struct.unpack_from("<I", raw, 12)[0]
+                ntiles = end_tile - start_tile + 1
+                widths_off = 16
+                heights_off = widths_off + ntiles * 2
+                pix_data_off = heights_off + ntiles * 2  # tile pixel data follows picanm array
+                non_empty = 0
+                for i in range(ntiles):
+                    w = struct.unpack_from("<H", raw, widths_off + i * 2)[0]
+                    h = struct.unpack_from("<H", raw, heights_off + i * 2)[0]
+                    if w * h > 0:
+                        non_empty += 1
+                if non_empty == 0:
+                    art_file.unlink()
+                    empty_removed += 1
+            if empty_removed > 0:
+                print(f"[info] --onlysmaller: removed {empty_removed} empty ART file(s) from output (no tile data left)")
+
         emitted_anim_defs = 0
         skipped_anim_defs = 0
         skipped_anim_details = []
