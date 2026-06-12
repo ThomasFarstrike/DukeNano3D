@@ -2639,6 +2639,12 @@ def main():
                         return 1
 
                 if out_png.name.lower() in excluded_files:
+                    if args.onlysmaller:
+                        subprocess.run(
+                            [str(arttool), "rmtile", str(global_tile)],
+                            cwd=temp_dir, check=False, capture_output=True,
+                        )
+                    out_png.unlink()
                     continue
 
                 raw_size = get_tile_raw_size(arttool, temp_dir, global_tile)
