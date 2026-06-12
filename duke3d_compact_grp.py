@@ -2764,6 +2764,79 @@ def main():
             if empty_removed > 0:
                 print(f"[info] --onlysmaller: removed {empty_removed} empty ART file(s) from output (no tile data left)")
 
+        # Sparse ART file optimization: for files with few tiles, the 2064 B
+        # header overhead may outweigh the raw-vs-PNG per-tile savings.
+        # When PNG-total for a file's tiles < ART file size, convert all
+        # tiles to PNG and drop the ART file.
+        if (args.onlysmaller and required_tiles is not None
+                and not selected_tile_files and args.pngfolder and png_sources):
+            sparse_converted = 0
+            for art_file in list(art_files):
+                if not art_file.exists():
+                    continue
+                raw = art_file.read_bytes()
+                if len(raw) < 16:
+                    continue
+                start_tile = struct.unpack_from("<I", raw, 8)[0]
+                end_tile   = struct.unpack_from("<I", raw, 12)[0]
+                ntiles = end_tile - start_tile + 1
+                widths_off = 16
+                heights_off = widths_off + ntiles * 2
+                picanm_off = heights_off + ntiles * 2
+
+                total_png = 0
+                to_convert = []
+                ok = True
+                for i in range(ntiles):
+                    w = struct.unpack_from("<H", raw, widths_off + i * 2)[0]
+                    h = struct.unpack_from("<H", raw, heights_off + i * 2)[0]
+                    if w * h == 0:
+                        continue
+                    global_tile = start_tile + i
+                    png_path = png_sources.get(global_tile)
+                    if not png_path:
+                        ok = False
+                        break
+                    total_png += png_path.stat().st_size
+                    picanm = struct.unpack_from("<I", raw, picanm_off + i * 4)[0]
+                    xofs = _decode_art_offset(picanm & 0xFF)
+                    yofs = _decode_art_offset((picanm >> 8) & 0xFF)
+                    to_convert.append((global_tile, xofs, yofs))
+
+                if not ok or total_png >= len(raw):
+                    continue
+
+                # Convert all tiles: copy PNGs, rmtile from ART, write def entries
+                for global_tile, xofs, yofs in to_convert:
+                    source_png = png_sources[global_tile]
+                    out_png = temp_dir / f"TILE{global_tile:04d}.PNG"
+                    if not out_png.exists():
+                        shutil.copy2(source_png, out_png)
+
+                    subprocess.run(
+                        [str(arttool), "rmtile", str(global_tile)],
+                        cwd=temp_dir, check=False, capture_output=True,
+                    )
+
+                    if global_tile not in written_tiles:
+                        if xofs == 0 and yofs == 0:
+                            duke_def.write(
+                                f"tilefromtexture {global_tile} {{ file {out_png.name} }}\n"
+                            )
+                        else:
+                            duke_def.write(
+                                f"tilefromtexture {global_tile} {{ file {out_png.name} "
+                                f"xoffset {xofs} yoffset {yofs} }}\n"
+                            )
+                        written_tiles.add(global_tile)
+
+                art_file.unlink()
+                sparse_converted += 1
+
+            if sparse_converted > 0:
+                print(f"[info] --onlysmaller: converted {sparse_converted} sparse ART file(s) to PNG-only "
+                      f"(PNG total < file overhead)")
+
         emitted_anim_defs = 0
         skipped_anim_defs = 0
         skipped_anim_details = []
