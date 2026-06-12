@@ -1,0 +1,122 @@
+PNG Compression Tool Pipeline Test Report
+==========================================
+Date: 2026-06-08
+Tools:
+  pngquant 3.0.3  (~/software/pngquant --quality 10 --speed 1 --posterize 3)
+  optipng              (optipng -o7)
+  zopflipng            (zopflipng --iterations=50 --filters=01234mepb
+                        --lossy_8bit --lossy_transparent -y)
+Base convert:  -alpha on -transparent '#FC00FC' -strip
+               -define png:compression-level=9
+               -define png:compression-strategy=1
+               -define png:exclude-chunks=date,time -colors 256 PNG8:
+Test tiles: tile0000.pcx (2556 B), tile0090.pcx (23093 B), tile2445.pcx (62197 B)
+
+15 pipeline sequences tested + bare convert baseline.
+
+======================================================================
+Tile: tile0000.pcx  (PCX: 2556 bytes)
+  Pre-existing: shareware=1070B, pngquant=624B, pngquant_10=421B
+======================================================================
+  Pipeline                         Bytes  Colors  Savings
+  convert-only                     1,164   32      54.5%
+  optipng                          1,122   32      56.1%
+  zopflipng                        1,072   32      58.1%
+  zopflipng+optipng                1,072   32      58.1%
+  optipng+zopflipng                1,072   32      58.1%
+  pngquant                           657    8      74.3%
+  pngquant+optipng                   641    8      74.9%
+  pngquant+zopflipng                 627    8      75.5%
+  optipng+pngquant                   657    8      74.3%
+  optipng+zopflipng+pngquant         657    8      74.3%
+  zopflipng+pngquant                 657    8      74.3%
+  zopflipng+optipng+pngquant         657    8      74.3%
+  zopflipng+pngquant+optipng         641    8      74.9%
+  optipng+pngquant+zopflipng         627    8      75.5%
+  pngquant+zopflipng+optipng         627    8      75.5%
+  pngquant+optipng+zopflipng         627    8      75.5%
+
+======================================================================
+Tile: tile0090.pcx  (PCX: 23093 bytes)
+  Pre-existing: shareware=9571B, pngquant=6679B
+======================================================================
+  Pipeline                         Bytes  Colors  Savings
+  convert-only                    10,430   83      54.8%
+  optipng                         10,430   83      54.8%
+  zopflipng                        9,621   83      58.3%
+  optipng+zopflipng                9,621   83      58.3%
+  zopflipng+optipng                9,621   83      58.3%
+  pngquant                         7,039   13      69.5%
+  pngquant+optipng                 7,039   13      69.5%
+  optipng+pngquant                 7,039   13      69.5%
+  zopflipng+pngquant               7,039   13      69.5%
+  optipng+zopflipng+pngquant       7,039   13      69.5%
+  zopflipng+optipng+pngquant       7,039   13      69.5%
+  pngquant+zopflipng               6,690   13      71.0%
+  pngquant+optipng+zopflipng       6,690   13      71.0%
+  pngquant+zopflipng+optipng       6,690   13      71.0%
+  optipng+pngquant+zopflipng       6,690   13      71.0%
+
+======================================================================
+Tile: tile2445.pcx  (PCX: 62197 bytes)
+  Pre-existing: shareware=23271B, pngquant=20035B
+======================================================================
+  Pipeline                         Bytes  Colors  Savings
+  convert-only                    26,053   92      58.1%
+  optipng                         25,244   92      59.4%
+  zopflipng                       23,323   92      62.5%
+  optipng+zopflipng               23,323   92      62.5%
+  zopflipng+optipng               23,323   92      62.5%
+  pngquant                        21,749   23      65.0%
+  pngquant+optipng                21,725   23      65.1%
+  optipng+pngquant                21,749   23      65.0%
+  zopflipng+pngquant              21,749   23      65.0%
+  optipng+zopflipng+pngquant      21,749   23      65.0%
+  zopflipng+optipng+pngquant      21,749   23      65.0%
+  zopflipng+pngquant+optipng      21,725   23      65.1%
+  pngquant+zopflipng              20,082   23      67.7%
+  pngquant+optipng+zopflipng      20,082   23      67.7%
+  pngquant+zopflipng+optipng      20,082   23      67.7%
+  optipng+pngquant+zopflipng      20,082   23      67.7%
+
+======================================================================
+SUMMARY
+======================================================================
+Best pipeline (all 3 tiles):  pngquant+zopflipng  (total 27,399 B)
+  (also tied: any pipeline ending with zopflipng after pngquant)
+
+Worst: convert-only (37,647 B)
+
+Order matters:
+  pngquant → zopflipng        27,399 B  ← BEST (reduces colors then compresses)
+  zopflipng → pngquant        29,445 B  ← WORSE (zopfli has no colors to remove)
+  pngquant → optipng          29,405 B
+
+Average ranking:
+   1. pngquant+zopflipng                 9,133 B
+   2. pngquant+optipng+zopflipng         9,133 B
+   3. pngquant+zopflipng+optipng         9,133 B
+   4. optipng+pngquant+zopflipng         9,133 B
+   5. pngquant+optipng                   9,802 B
+   ...
+  12. zopflipng                         11,339 B
+  15. optipng                           12,265 B
+  16. convert-only                      12,549 B
+
+======================================================================
+CONCLUSIONS
+======================================================================
+1. The best pipeline is pngquant → zopflipng.
+   pngquant reduces the color palette (32->8, 83->13, 92->23 colors),
+   then zopflipng applies aggressive DEFLATE + filter optimization on the
+   smaller-indexed image.
+
+2. Order is critical: pngquant must come before zopflipng.
+   If zopflipng runs first, pngquant still reduces colors, but zopflipng
+   wasted effort compressing a larger palette first.
+
+3. optipng adds nothing after pngquant+zopflipng — the result is identical
+   (zopflipng already explores all filter strategies).
+
+4. zopflipng alone (without pngquant) preserves the full color palette and
+   achieves ~58% savings. Adding pngquant first boosts this to ~71-75%.
