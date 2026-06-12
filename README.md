@@ -8,20 +8,21 @@ Compact Duke Nukem 3D 1.3D Shareware `.grp` variants for constrained targets (e.
 
 | Version | Size (KiB) | Reduction in % | Size Zipped (KiB) | Reduction in % |
 | --- | --- | --- | --- | --- |
-| DUKE3D_v1.3d_shareware.grp | 10777.1 | 0% | 4761.4 | 55.82% |
-| E1L1-6.grp | 3823.3 | 64.52% | 2668.1 | 75.24% |
-| E1L1-6_nearcomplete.grp | 3649.6 | 66.14% | 2503.7 | 76.77% |
-| E1L1-6_compromise.grp | 3099.3 | 71.24% | 2016.5 | 81.29% |
-| E1L1-3_nearcomplete.grp | 2860.4 | 73.46% | 2105.7 | 80.46% |
-| E1L1-6_tiny.grp | 2661.7 | 75.30% | 1618.8 | 84.98% |
-| E1L1-2.grp | 2652.6 | 75.39% | 2040.0 | 81.07% |
-| E1L1-2_nearcomplete.grp | 2515.3 | 76.66% | 1908.7 | 82.29% |
-| E1L1-3_compromise.grp | 2379.2 | 77.92% | 1682.9 | 84.38% |
-| E1L1.grp | 2288.1 | 78.77% | 1775.5 | 83.53% |
-| E1L1-2_compromise.grp | 2072.6 | 80.77% | 1521.1 | 85.89% |
-| E1L1_compromise.grp | 1768.3 | 83.59% | 1308.9 | 87.86% |
-| E1L1_tiny.grp | 1412.6 | 86.89% | 991.3 | 90.80% |
-| E1L1_minimal.grp | 1363.8 | 87.35% | 949.0 | 91.19% |
+| DUKE3D_v1.3d_shareware.grp | 10777.1 | 0% | 4729.2 | 56.11% |
+| E1L1-6.grp | 3765.0 | 65.06% | 2639.4 | 75.51% |
+| E1L1-6_nearcomplete.grp | 3591.4 | 66.68% | 2475.2 | 77.03% |
+| E1L1-6_compromise.grp | 3013.7 | 72.04% | 1963.1 | 81.78% |
+| E1L1-3_nearcomplete.grp | 2802.4 | 74.00% | 2077.7 | 80.72% |
+| E1L1-6_tiny.grp | 2664.1 | 75.28% | 1598.8 | 85.17% |
+| E1L1-2.grp | 2595.0 | 75.92% | 2011.0 | 81.34% |
+| E1L1-4_heavycompromise.grp | 2497.2 | 76.83% | 1685.4 | 84.36% |
+| E1L1-2_nearcomplete.grp | 2457.6 | 77.20% | 1879.8 | 82.56% |
+| E1L1-3_compromise.grp | 2293.8 | 78.72% | 1629.7 | 84.88% |
+| E1L1.grp | 2231.4 | 79.29% | 1747.6 | 83.78% |
+| E1L1-2_compromise.grp | 1987.5 | 81.56% | 1468.1 | 86.38% |
+| E1L1_compromise.grp | 1686.8 | 84.35% | 1259.5 | 88.31% |
+| E1L1_tiny.grp | 1416.8 | 86.85% | 971.6 | 90.98% |
+| E1L1_minimal.grp | 1368.0 | 87.31% | 927.9 | 91.39% |
 
 Notes:
 
