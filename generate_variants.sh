@@ -175,6 +175,11 @@ python3 duke3d_compact_grp.py --camerasdestructable --onlysmaller --adpcmwav --u
 zip -j -9 "$OUTPUT_DIR/E1L1-6_tiny.grp.zip" "$OUTPUT_DIR/E1L1-6_tiny.grp"
 
 
+# 4 levels, heavy compromise:
+python3 duke3d_compact_grp.py --camerasdestructable --onlysmaller --adpcmwav --ultraminimalmenu --pngfolder "$PNGQUANTS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" "${REPLACE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP,E1L3.MAP,E1L4.MAP "$INPUT" --adpcmwidth 2 --maxsoundsize 12500 --output "$OUTPUT_DIR/E1L1-4_heavycompromise.grp"
+zip -j -9 "$OUTPUT_DIR/E1L1-4_heavycompromise.grp.zip" "$OUTPUT_DIR/E1L1-4_heavycompromise.grp"
+
+
 
 # 3 levels, near complete:
 python3 duke3d_compact_grp.py --camerasdestructable --onlysmaller --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP,E1L3.MAP "$INPUT" --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-3_nearcomplete.grp"

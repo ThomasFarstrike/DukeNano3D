@@ -2527,7 +2527,10 @@ def main():
                 if out_png.exists():
                     out_png.unlink()
 
-                if args.pngfolder:
+                tile_replacement = replace_files.get(out_png.name.lower())
+                if tile_replacement is not None:
+                    shutil.copy2(tile_replacement, out_png)
+                elif args.pngfolder:
                     source_png = png_sources.get(global_tile)
                     if not source_png:
                         raw_size = get_tile_raw_size(arttool, temp_dir, global_tile)
@@ -2819,22 +2822,24 @@ def main():
                     if w * h == 0:
                         continue
                     global_tile = start_tile + i
-                    png_path = png_sources.get(global_tile)
+                    tile_replacement = replace_files.get(f"tile{global_tile:04d}.png")
+                    png_path = tile_replacement if tile_replacement is not None else png_sources.get(global_tile)
                     if not png_path:
                         ok = False
                         break
                     total_png += png_path.stat().st_size
-                    picanm = struct.unpack_from("<I", raw, picanm_off + i * 4)[0]
-                    xofs = _decode_art_offset(picanm & 0xFF)
-                    yofs = _decode_art_offset((picanm >> 8) & 0xFF)
-                    to_convert.append((global_tile, xofs, yofs))
+                picanm = struct.unpack_from("<I", raw, picanm_off + i * 4)[0]
+                xofs = _decode_art_offset(picanm & 0xFF)
+                yofs = _decode_art_offset((picanm >> 8) & 0xFF)
+                to_convert.append((global_tile, xofs, yofs))
 
                 if not ok or total_png >= len(raw):
                     continue
 
                 # Convert all tiles: copy PNGs, rmtile from ART, write def entries
                 for global_tile, xofs, yofs in to_convert:
-                    source_png = png_sources[global_tile]
+                    tile_replacement = replace_files.get(f"tile{global_tile:04d}.png")
+                    source_png = tile_replacement if tile_replacement is not None else png_sources[global_tile]
                     out_png = temp_dir / f"TILE{global_tile:04d}.PNG"
                     if not out_png.exists():
                         shutil.copy2(source_png, out_png)
