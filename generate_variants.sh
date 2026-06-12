@@ -115,12 +115,25 @@ INPUT=input/DUKE3D_v1.3d_shareware.grp
 OUTPUT_DIR="outputs"
 mkdir -p "$OUTPUT_DIR"
 
+# THESE precalculated_pngs* folders are created by first running it with --keep-temp and then renaming temp_folder to precalculated_pngs_...
+# You can use ./longrun.sh for that
+
+
 #PNGS=precalculated_pngs_full_1.3D/
 PNGS=precalculated_pngs_shareware_1.3D/
 
 #PNGQUANTS=precalculated_pngs_pngquant/
 #PNGQUANTS=precalculated_pngs_pngquant_69-71_2/
-PNGQUANTS=precalculated_pngs_pngquant_40-71_2/
+#PNGQUANTS=precalculated_pngs_pngquant_40-71_2/
+#PNGQUANTS=precalculated_pngs_full_1.3D_pngquant_40-71_2
+PNGQUANTS=precalculated_pngs_pngquant_40-71_2_iterations_500
+
+
+# 2 levels with compromise but based on the full to test:
+# somehow this results in 200KB extra being added :-/
+#python3 duke3d_compact_grp.py --camerasdestructable --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGQUANTS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP input/DUKE3D_v1.3d_full.grp --adpcmwidth 2 --maxsoundsize 15000 --output "$OUTPUT_DIR/E1L1-2_compromise_from_full.grp"
+#zip -j -9 "$OUTPUT_DIR/E1L1-2_compromise_from_full.grp.zip" "$OUTPUT_DIR/E1L1-2_compromise_from_full.grp"
+#exit
 
 PNGQUANTS_AGRESSIVE=precalculated_pngs_pngquant_10_3/
 
