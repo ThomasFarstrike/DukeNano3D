@@ -1665,6 +1665,7 @@ def main():
             "--ultraminimalmenu",
             "--excludefiles",
             "--includefiles",
+            "--replacefile",
             "--adpcmwav",
             "--adpcmwidth",
             "--maxsoundsize",
@@ -1773,6 +1774,16 @@ def main():
             "Force-include one or more filenames in the final GRP (comma-separated, repeatable). "
             "Applied at the end of file selection and overrides excludes/filtering options. "
             "Every listed file must exist in extracted temp dir; otherwise the script aborts."
+        ),
+    )
+    parser.add_argument(
+        "--replacefile",
+        nargs=2,
+        action="append",
+        metavar=("GRP_NAME", "SOURCE_PATH"),
+        help=(
+            "Replace a file in the final GRP with content from an external source file (repeatable). "
+            "Example: --replacefile TILE0269.PNG ../somefolder/TILE0269.PNG"
         ),
     )
     parser.add_argument(
@@ -1896,6 +1907,15 @@ def main():
     work_dir = Path.cwd().resolve()
     script_dir = Path(__file__).resolve().parent
     grp_path = (work_dir / args.grpfile).resolve()
+
+    replace_files = {}
+    if args.replacefile:
+        for grp_name, source_path in args.replacefile:
+            normalized_name = Path(grp_name).name.lower()
+            source = Path(source_path)
+            if not source.is_absolute():
+                source = (work_dir / source).resolve()
+            replace_files[normalized_name] = source
     if not grp_path.exists():
         print(f"Input GRP not found: {grp_path}")
         return 1
@@ -3029,6 +3049,25 @@ def main():
             return 1
 
         files.extend(forced_included_paths)
+
+    if replace_files:
+        missing_replace_files = []
+        for grp_name, source_path in sorted(replace_files.items()):
+            if not source_path.exists():
+                missing_replace_files.append((grp_name, str(source_path)))
+                continue
+            existing = find_file_case_insensitive(temp_dir, grp_name)
+            dest = existing if existing is not None else (temp_dir / grp_name)
+            shutil.copy2(source_path, dest)
+            print(f"[info] --replacefile: {dest.name} <- {source_path}")
+            if dest not in files:
+                files.append(dest)
+        if missing_replace_files:
+            print("[error] --replacefile requested source file(s) not found:")
+            for grp_name, missing_path in missing_replace_files:
+                print(f"[error]   {grp_name} -> {missing_path}")
+            print("[error] Aborting because --replacefile must resolve every listed source file.")
+            return 1
 
     # de-duplicate while preserving order
     files = list(dict.fromkeys(files))

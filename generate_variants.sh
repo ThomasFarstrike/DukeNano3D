@@ -3,7 +3,7 @@
 # 2456 is the background for the menus and should be kept, but single color will make it just 3% of the size!
 # 0966 is a poster, replace it by something smaller?
 # 0095 is the night sky with stars
-# 0989-0993 are the skyline, replace with something smaller? or something repeating?
+# 0089-0093 are the skyline, replace with something smaller? or something repeating?
 # WIND54.VOC is also playing at the start of the game but not that interesting
 # cool: FIRE09.VOC,38k
 EXCLUDE_CSVS=$(cat <<'EOF'
@@ -110,6 +110,30 @@ done <<EOF
 $INCLUDE_CSVS_TINY
 EOF
 
+# --replacefile examples:
+#   Format: "GRP_NAME,SOURCE_PATH,optional human comment"
+#   Source path supports spaces but NOT commas (comma is the field separator).
+#   Paths are resolved relative to the script working directory.
+REPLACE_CSVS=$(cat <<'EOF'
+TILE0089.PNG,overrides/TILE0089.PNG,sky
+TILE0090.PNG,overrides/TILE0089.PNG,sky
+TILE0091.PNG,overrides/TILE0089.PNG,sky
+TILE0092.PNG,overrides/TILE0089.PNG,sky
+TILE0093.PNG,overrides/TILE0089.PNG,sky
+EOF
+)
+
+REPLACE_ARGS=()
+while IFS= read -r csv; do
+    [ -z "$csv" ] && continue
+    grp_name=$(printf '%s' "$csv" | cut -d',' -f1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    source_path=$(printf '%s' "$csv" | cut -d',' -f2 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    [ -z "$grp_name" ] || [ -z "$source_path" ] && continue
+    REPLACE_ARGS+=("--replacefile" "$grp_name" "$source_path")
+done <<EOF
+$REPLACE_CSVS
+EOF
+
 INPUT=input/DUKE3D_v1.3d_shareware.grp
 
 OUTPUT_DIR="outputs"
@@ -141,11 +165,11 @@ PNGQUANTS_AGRESSIVE=precalculated_pngs_pngquant_10_3/
 # See the end
 
 # All levels, nearly complete:
-python3 duke3d_compact_grp.py --camerasdestructable --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" "$INPUT" --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-6_nearcomplete.grp"
+python3 duke3d_compact_grp.py --camerasdestructable --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGS" "${EXCLUDE_ARGS[@]}" "${REPLACE_ARGS[@]}" "$INPUT" --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-6_nearcomplete.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1-6_nearcomplete.grp.zip" "$OUTPUT_DIR/E1L1-6_nearcomplete.grp"
 
 # Some compromise:
-python3 duke3d_compact_grp.py --camerasdestructable --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGQUANTS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" "$INPUT" --maxsoundsize 15000 --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-6_compromise.grp"
+python3 duke3d_compact_grp.py --camerasdestructable --zopflipng --adpcmwav --ultraminimalmenu --pngfolder "$PNGQUANTS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" "${REPLACE_ARGS[@]}" "$INPUT" --maxsoundsize 15000 --adpcmwidth 2 --output "$OUTPUT_DIR/E1L1-6_compromise.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1-6_compromise.grp.zip" "$OUTPUT_DIR/E1L1-6_compromise.grp"
 
 # All levels but tiny:
