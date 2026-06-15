@@ -113,11 +113,14 @@ EOF
 #   Source path supports spaces but NOT commas (comma is the field separator).
 #   Paths are resolved relative to the script working directory.
 REPLACE_CSVS=$(cat <<'EOF'
-TILE0089.PNG,overrides/TILE0089.PNG,sky
-TILE0090.PNG,overrides/TILE0089.PNG,sky
-TILE0091.PNG,overrides/TILE0089.PNG,sky
-TILE0092.PNG,overrides/TILE0089.PNG,sky
-TILE0093.PNG,overrides/TILE0089.PNG,sky
+TILE0089.PNG,overrides/TILE0095.PNG,sky
+TILE0090.PNG,overrides/TILE0095.PNG,sky
+TILE0091.PNG,overrides/TILE0095.PNG,sky
+TILE0092.PNG,overrides/TILE0095.PNG,sky
+TILE0093.PNG,overrides/TILE0095.PNG,sky
+TILE0095.PNG,overrides/TILE0095.PNG,sky
+TILE3281.PNG,overrides/TILE3281.PNG,menu background to atomic logo HQ
+TILE2456.PNG,overrides/TILE3281.PNG,menu background to atomic logo HQ
 EOF
 )
 
@@ -149,6 +152,12 @@ PNGS=precalculated_pngs_shareware_1.3D/
 #PNGQUANTS=precalculated_pngs_pngquant_40-71_2/
 #PNGQUANTS=precalculated_pngs_full_1.3D_pngquant_40-71_2
 PNGQUANTS=precalculated_pngs_pngquant_40-71_2_iterations_500
+
+
+# 2 levels with compromise:
+python3 duke3d_compact_grp.py --camerasdestructable --onlysmaller --adpcmwav --ultraminimalmenu --pngfolder "$PNGQUANTS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" "${REPLACE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP "$INPUT" --adpcmwidth 2 --maxsoundsize 15000 --output "$OUTPUT_DIR/E1L1-2_compromise.grp"
+zip -j -9 "$OUTPUT_DIR/E1L1-2_compromise.grp.zip" "$OUTPUT_DIR/E1L1-2_compromise.grp"
+exit
 
 
 # 2 levels with compromise but based on the full to test:
