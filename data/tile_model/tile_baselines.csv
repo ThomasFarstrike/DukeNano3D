@@ -26,6 +26,7 @@ runtime_essential,SHRINKSPARK..SHRINKSPARK+3,map,Shrinkspark sequence
 runtime_essential,MORTER..MORTER+3,map,Morter sequence
 runtime_essential,SHRINKEREXPLOSION..SHRINKEREXPLOSION+3,map,Shrinker explosion sequence
 runtime_essential,EXPLOSION2..EXPLOSION2+20,map,Explosion2 sequence
+runtime_essential,2219..2238,map,Explosion2BOT sequence
 runtime_essential,JIBS1..JIBS5+4,map,Jibs set one through five
 runtime_essential,BURNING..BURNING+13,map,Burning sequence one
 runtime_essential,JIBS6..JIBS6+7,map,Jibs six sequence
