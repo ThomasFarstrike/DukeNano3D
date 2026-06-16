@@ -157,10 +157,16 @@ PNGS=precalculated_pngs_shareware_1.3D/
 PNGQUANTS=precalculated_pngs_pngquant_40-71_2_iterations_500
 
 
+# 4 levels, heavy compromise:
+#python3 duke3d_compact_grp.py --camerasdestructable --onlysmaller --adpcmwav --ultraminimalmenu --pngfolder "$PNGQUANTS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" "${REPLACE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP,E1L3.MAP,E1L4.MAP "$INPUT" --adpcmwidth 2 --maxsoundsize 15000 --output "$OUTPUT_DIR/E1L1-4_compromise.grp"
+#zip -j -9 "$OUTPUT_DIR/E1L1-4_compromise.grp.zip" "$OUTPUT_DIR/E1L1-4_compromise.grp"
+#exit 1
+
+
 # 2 levels with compromise:
-python3 duke3d_compact_grp.py --camerasdestructable --keep-temp --onlysmaller --adpcmwav --ultraminimalmenu --pngfolder "$PNGQUANTS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" "${REPLACE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP "$INPUT" --adpcmwidth 2 --maxsoundsize 15000 --output "$OUTPUT_DIR/E1L1-2_compromise.grp"
-zip -j -9 "$OUTPUT_DIR/E1L1-2_compromise.grp.zip" "$OUTPUT_DIR/E1L1-2_compromise.grp"
-exit
+#python3 duke3d_compact_grp.py --camerasdestructable --keep-temp --onlysmaller --adpcmwav --ultraminimalmenu --pngfolder "$PNGQUANTS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" "${REPLACE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP "$INPUT" --adpcmwidth 2 --maxsoundsize 15000 --output "$OUTPUT_DIR/E1L1-2_compromise.grp"
+#zip -j -9 "$OUTPUT_DIR/E1L1-2_compromise.grp.zip" "$OUTPUT_DIR/E1L1-2_compromise.grp"
+#exit
 
 
 # 2 levels with compromise but based on the full to test:
@@ -186,6 +192,10 @@ zip -j -9 "$OUTPUT_DIR/E1L1-6_compromise.grp.zip" "$OUTPUT_DIR/E1L1-6_compromise
 python3 duke3d_compact_grp.py --camerasdestructable --onlysmaller --adpcmwav --ultraminimalmenu --pngfolder "$PNGQUANTS_AGRESSIVE" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS_TINY[@]}" "${REPLACE_ARGS[@]}" "$INPUT" --adpcmwidth 2 --maxsoundsize 5000 --nomenusongs --output "$OUTPUT_DIR/E1L1-6_tiny.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1-6_tiny.grp.zip" "$OUTPUT_DIR/E1L1-6_tiny.grp"
 
+
+# 4 levels, compromise:
+python3 duke3d_compact_grp.py --camerasdestructable --onlysmaller --adpcmwav --ultraminimalmenu --pngfolder "$PNGQUANTS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" "${REPLACE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP,E1L3.MAP,E1L4.MAP "$INPUT" --adpcmwidth 2 --maxsoundsize 15000 --output "$OUTPUT_DIR/E1L1-4_compromise.grp"
+zip -j -9 "$OUTPUT_DIR/E1L1-4_compromise.grp.zip" "$OUTPUT_DIR/E1L1-4_compromise.grp"
 
 # 4 levels, heavy compromise:
 python3 duke3d_compact_grp.py --camerasdestructable --onlysmaller --adpcmwav --ultraminimalmenu --pngfolder "$PNGQUANTS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" "${REPLACE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP,E1L3.MAP,E1L4.MAP "$INPUT" --adpcmwidth 2 --maxsoundsize 12500 --output "$OUTPUT_DIR/E1L1-4_heavycompromise.grp"
