@@ -116,6 +116,8 @@ EOF
 #   Multiple tiles referencing the same source file are automatically
 #   deduplicated in the GRP using tilefromtexture in duke3d.def.
 #TILE3281.PNG,overrides/TILE0095.PNG,loading screen: atomic logo HQ
+# TILE2492.PNG is the 3D Realms Reality is our Game (first image)
+# TILE2493.PNG is the second image (Duke with guns)
 REPLACE_CSVS=$(cat <<'EOF'
 TILE0089.PNG,overrides/TILE0095.PNG,sky
 TILE0090.PNG,overrides/TILE0095.PNG,sky
