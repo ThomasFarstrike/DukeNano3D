@@ -9,6 +9,7 @@
 EXCLUDE_CSVS=$(cat <<'EOF'
 TILE1102.PNG,some high def image
 TILE2445.PNG,help screen can be omitted in this pack
+TILE2456.PNG,menu background is very big and will be replaced
 TILE3260.PNG,end animation
 TILE3263.PNG,end animation
 TILE3264.PNG,end animation
@@ -114,6 +115,7 @@ EOF
 #   Paths are resolved relative to the script working directory.
 #   Multiple tiles referencing the same source file are automatically
 #   deduplicated in the GRP using tilefromtexture in duke3d.def.
+#TILE3281.PNG,overrides/TILE0095.PNG,loading screen: atomic logo HQ
 REPLACE_CSVS=$(cat <<'EOF'
 TILE0089.PNG,overrides/TILE0095.PNG,sky
 TILE0090.PNG,overrides/TILE0095.PNG,sky
@@ -121,8 +123,7 @@ TILE0091.PNG,overrides/TILE0095.PNG,sky
 TILE0092.PNG,overrides/TILE0095.PNG,sky
 TILE0093.PNG,overrides/TILE0095.PNG,sky
 TILE0095.PNG,overrides/TILE0095.PNG,sky
-TILE3281.PNG,overrides/TILE3281.PNG,menu background to atomic logo HQ
-TILE2456.PNG,overrides/TILE3281.PNG,menu background to atomic logo HQ
+TILE2456.PNG,overrides/TILE1141.PNG,menu background
 EOF
 )
 
