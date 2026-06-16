@@ -20,6 +20,7 @@
   `arttool` always writes `numtiles=0` on rewrite; the reader ignores it. Always use `start_tile`/`end_tile` to get the tile range.
 - `--onlysmaller` includes empty-ART removal: after the cleanup pass, files with zero `width*height>0` tiles are deleted from temp_dir.
 - Per-file overhead: when PNG-total for a file's tiles is smaller than the ART file, it may be worth converting all tiles to PNG and dropping ART. Currently only empty files (0 non-empty tiles) are dropped, not "sparse" ones.
+- `--replacefile` dedup: when multiple TILE####.PNG arguments point to the same source file, only one copy is stored in the GRP and the others are served via `tilefromtexture` in `duke3d.def`. The canonical name is the one matching the source stem (e.g., `TILE0095.PNG` for source `overrides/TILE0095.PNG`); non-matching ones (e.g., `TILE0089.PNG` with the same source) are replaced by `tilefromtexture { file TILE0095.PNG }`.
 
 ## Building Required EDuke32 Tools
 - From `eduke32-for-DukeNano3D/`, run `make tools` to build `kextract`, `kgroup`, `arttool`, and `mapinfo` (these are explicit GNUmakefile tool targets).

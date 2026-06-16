@@ -112,6 +112,8 @@ EOF
 
 #   Source path supports spaces but NOT commas (comma is the field separator).
 #   Paths are resolved relative to the script working directory.
+#   Multiple tiles referencing the same source file are automatically
+#   deduplicated in the GRP using tilefromtexture in duke3d.def.
 REPLACE_CSVS=$(cat <<'EOF'
 TILE0089.PNG,overrides/TILE0095.PNG,sky
 TILE0090.PNG,overrides/TILE0095.PNG,sky
@@ -155,7 +157,7 @@ PNGQUANTS=precalculated_pngs_pngquant_40-71_2_iterations_500
 
 
 # 2 levels with compromise:
-python3 duke3d_compact_grp.py --camerasdestructable --onlysmaller --adpcmwav --ultraminimalmenu --pngfolder "$PNGQUANTS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" "${REPLACE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP "$INPUT" --adpcmwidth 2 --maxsoundsize 15000 --output "$OUTPUT_DIR/E1L1-2_compromise.grp"
+python3 duke3d_compact_grp.py --camerasdestructable --keep-temp --onlysmaller --adpcmwav --ultraminimalmenu --pngfolder "$PNGQUANTS" "${EXCLUDE_ARGS[@]}" "${INCLUDE_ARGS[@]}" "${REPLACE_ARGS[@]}" --map E1L1.MAP,E1L2.MAP "$INPUT" --adpcmwidth 2 --maxsoundsize 15000 --output "$OUTPUT_DIR/E1L1-2_compromise.grp"
 zip -j -9 "$OUTPUT_DIR/E1L1-2_compromise.grp.zip" "$OUTPUT_DIR/E1L1-2_compromise.grp"
 exit
 

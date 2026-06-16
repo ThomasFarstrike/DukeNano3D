@@ -1783,6 +1783,8 @@ def main():
         metavar=("GRP_NAME", "SOURCE_PATH"),
         help=(
             "Replace a file in the final GRP with content from an external source file (repeatable). "
+            "When multiple TILE####.PNG arguments point to the same source file, only one copy "
+            "is stored; the rest use tilefromtexture in duke3d.def. "
             "Example: --replacefile TILE0269.PNG ../somefolder/TILE0269.PNG"
         ),
     )
@@ -1916,6 +1918,35 @@ def main():
             if not source.is_absolute():
                 source = (work_dir / source).resolve()
             replace_files[normalized_name] = source
+
+    # Build deduplication map for --replacefile: when multiple TILE####.PNG entries
+    # point to the same source file, store only one copy in the GRP and reference
+    # it from other tiles via tilefromtexture in duke3d.def.
+    replace_dedup = {}
+    canonical_replace_sources = {}
+    source_to_grp_names = defaultdict(set)
+    for name, source in replace_files.items():
+        source_to_grp_names[source].add(name)
+    for source, names in source_to_grp_names.items():
+        tile_names = [n for n in names if re.match(r"^tile\d{4}\.png$", n)]
+        if len(tile_names) < 2:
+            continue
+        source_stem = source.stem.lower()
+        canonical = None
+        for name in tile_names:
+            if Path(name).stem.lower() == source_stem:
+                canonical = name
+                break
+        if canonical is None:
+            canonical = sorted(tile_names)[0]
+        canonical_replace_sources[canonical] = source
+        for name in tile_names:
+            if name != canonical:
+                replace_dedup[name] = canonical
+    if replace_dedup:
+        for non_canonical, canonical in sorted(replace_dedup.items()):
+            print(f"[info] --replacefile dedup: {non_canonical} -> {canonical} (shares source)")
+
     if not grp_path.exists():
         print(f"Input GRP not found: {grp_path}")
         return 1
@@ -2517,6 +2548,22 @@ def main():
                         anim_info = get_tile_anim_info(arttool, temp_dir, global_tile)
                         if anim_info["frames"] > 0 and anim_info["type"] > 0:
                             anim_def_candidates[global_tile] = anim_info
+                    elif out_png.name.lower() in replace_dedup:
+                        # Deduplicated tile: re-emit tilefromtexture pointing to canonical file
+                        match = re.match(r"tile(\d{4})\.png", replace_dedup[out_png.name.lower()])
+                        if match:
+                            def_filename = f"TILE{match.group(1)}.PNG"
+                            xofs, yofs = get_tile_offsets(arttool, temp_dir, global_tile)
+                            if xofs == 0 and yofs == 0:
+                                duke_def.write(f"tilefromtexture {global_tile} {{ file {def_filename} }}\n")
+                            else:
+                                duke_def.write(
+                                    f"tilefromtexture {global_tile} {{ file {def_filename} xoffset {xofs} yoffset {yofs} }}\n"
+                                )
+                            written_tiles.add(global_tile)
+                            anim_info = get_tile_anim_info(arttool, temp_dir, global_tile)
+                            if anim_info["frames"] > 0 and anim_info["type"] > 0:
+                                anim_def_candidates[global_tile] = anim_info
                     continue
 
                 local_pcx = temp_dir / f"tile{global_padded}.pcx"
@@ -2529,6 +2576,24 @@ def main():
 
                 tile_replacement = replace_files.get(out_png.name.lower())
                 if tile_replacement is not None:
+                    if out_png.name.lower() in replace_dedup:
+                        # Deduplicated replacement: don't copy the file; write
+                        # tilefromtexture pointing to the canonical tile's PNG.
+                        match = re.match(r"tile(\d{4})\.png", replace_dedup[out_png.name.lower()])
+                        if match:
+                            def_filename = f"TILE{match.group(1)}.PNG"
+                            xofs, yofs = get_tile_offsets(arttool, temp_dir, global_tile)
+                            if xofs == 0 and yofs == 0:
+                                duke_def.write(f"tilefromtexture {global_tile} {{ file {def_filename} }}\n")
+                            else:
+                                duke_def.write(
+                                    f"tilefromtexture {global_tile} {{ file {def_filename} xoffset {xofs} yoffset {yofs} }}\n"
+                                )
+                            written_tiles.add(global_tile)
+                            anim_info = get_tile_anim_info(arttool, temp_dir, global_tile)
+                            if anim_info["frames"] > 0 and anim_info["type"] > 0:
+                                anim_def_candidates[global_tile] = anim_info
+                        continue
                     shutil.copy2(tile_replacement, out_png)
                 elif args.pngfolder:
                     source_png = png_sources.get(global_tile)
@@ -2828,20 +2893,21 @@ def main():
                         ok = False
                         break
                     total_png += png_path.stat().st_size
-                picanm = struct.unpack_from("<I", raw, picanm_off + i * 4)[0]
-                xofs = _decode_art_offset(picanm & 0xFF)
-                yofs = _decode_art_offset((picanm >> 8) & 0xFF)
-                to_convert.append((global_tile, xofs, yofs))
+                    picanm = struct.unpack_from("<I", raw, picanm_off + i * 4)[0]
+                    xofs = _decode_art_offset(picanm & 0xFF)
+                    yofs = _decode_art_offset((picanm >> 8) & 0xFF)
+                    to_convert.append((global_tile, xofs, yofs))
 
                 if not ok or total_png >= len(raw):
                     continue
 
                 # Convert all tiles: copy PNGs, rmtile from ART, write def entries
                 for global_tile, xofs, yofs in to_convert:
+                    is_dedup = f"tile{global_tile:04d}.png" in replace_dedup
                     tile_replacement = replace_files.get(f"tile{global_tile:04d}.png")
                     source_png = tile_replacement if tile_replacement is not None else png_sources[global_tile]
                     out_png = temp_dir / f"TILE{global_tile:04d}.PNG"
-                    if not out_png.exists():
+                    if not is_dedup and not out_png.exists():
                         shutil.copy2(source_png, out_png)
 
                     subprocess.run(
@@ -2849,7 +2915,7 @@ def main():
                         cwd=temp_dir, check=False, capture_output=True,
                     )
 
-                    if global_tile not in written_tiles:
+                    if not is_dedup and global_tile not in written_tiles:
                         if xofs == 0 and yofs == 0:
                             duke_def.write(
                                 f"tilefromtexture {global_tile} {{ file {out_png.name} }}\n"
@@ -3057,14 +3123,27 @@ def main():
 
     if replace_files:
         missing_replace_files = []
+        copied_sources = set()
         for grp_name, source_path in sorted(replace_files.items()):
+            if grp_name in replace_dedup:
+                continue  # handled by tilefromtexture dedup
             if not source_path.exists():
                 missing_replace_files.append((grp_name, str(source_path)))
                 continue
             existing = find_file_case_insensitive(temp_dir, grp_name)
-            dest = existing if existing is not None else (temp_dir / grp_name)
-            shutil.copy2(source_path, dest)
-            print(f"[info] --replacefile: {dest.name} <- {source_path}")
+            if existing is not None:
+                dest = existing
+            else:
+                # Use uppercase TILE####.PNG naming to match tilefromtexture
+                tile_match = re.match(r"^(tile\d{4})\.png$", grp_name)
+                if tile_match:
+                    dest = temp_dir / f"{tile_match.group(1).upper()}.PNG"
+                else:
+                    dest = temp_dir / grp_name
+            if source_path not in copied_sources:
+                shutil.copy2(source_path, dest)
+                copied_sources.add(source_path)
+                print(f"[info] --replacefile: {dest.name} <- {source_path}")
             if dest not in files:
                 files.append(dest)
         if missing_replace_files:
