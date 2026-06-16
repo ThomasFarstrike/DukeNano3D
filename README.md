@@ -30,6 +30,7 @@ Notes:
 - Baseline is `input/DUKE3D_v1.3d_shareware.grp`. Both "Reduction in %" columns are compared to that same unzipped baseline.
 - Output sizes will vary slightly based on PNG compressor settings, PNG cache used, and tool versions. The above values are from a run using the precalculated PNG caches described in `longrun.sh`.
 - See `generate_variants.sh` for the exact per-variant arguments.
+- The "Zipped" files are a ZIP of the .GRP files, which is supported by [DynaMight1224's experimental Duke3D-Go branch for Retro-Go on the ESP32](https://github.com/ducalex/retro-go/pull/289)
 
 ### Regenerate the table
 
