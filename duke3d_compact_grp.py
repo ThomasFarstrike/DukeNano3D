@@ -37,6 +37,28 @@ def find_tool(script_dir: Path, tool_name: str) -> Path:
         f"Required tool '{tool_name}' not found in local dirs ({searched}) or PATH"
     )
 
+
+def convert_pcx_to_png8(pcx_path: Path, png_path: Path):
+    """Convert arttool's 8-bit PCX export to a palette PNG.
+
+    Preserves the original 256-colour palette and indices; only palette index
+    255 (the Build engine's transparent colour) is marked transparent via a
+    tRNS chunk. This avoids the colour drift and white-speck artefacts that
+    ImageMagick's -colors 256 re-quantisation can introduce.
+    """
+    from PIL import Image
+
+    with Image.open(str(pcx_path)) as img:
+        if img.mode != "P":
+            raise ValueError(
+                f"Expected an 8-bit palette PCX from arttool, got {img.mode} ({pcx_path})"
+            )
+
+        # Build engine convention: palette entry 255 is the transparent colour.
+        img.info["transparency"] = 255
+        img.save(str(png_path), format="PNG", optimize=True)
+
+
 def collect_files(temp_dir: Path, patterns):
     files = []
     for pattern in patterns:
@@ -1974,11 +1996,6 @@ def main():
     kgroup = find_tool(script_dir, "kgroup")
     arttool = find_tool(script_dir, "arttool")
     mapinfo = find_tool(script_dir, "mapinfo")
-    convert = None
-    if not args.pngfolder:
-        convert = shutil.which("convert")
-        if not convert:
-            raise FileNotFoundError("Required tool 'convert' (ImageMagick) not found in PATH")
 
     zopflipng = None
     if args.zopflipng and not args.pngfolder:
@@ -2621,26 +2638,11 @@ def main():
                     if not local_pcx.exists():
                         continue
 
-                    convert_proc = subprocess.run([
-                        convert,
-                        str(local_pcx),
-                        #"-alpha", "off",
-                        "-alpha", "on",
-                        "-transparent", "#FC00FC",
-                        "-strip",
-                        "-define", "png:compression-level=9",
-                        "-define", "png:compression-strategy=1",
-                        "-define", "png:exclude-chunks=date,time",
-                        "-colors", "256",
-                        f"PNG8:{out_png}",
-                    ], cwd=temp_dir, check=False, capture_output=True, text=True)
-
-                    if convert_proc.returncode != 0 or not out_png.exists():
-                        print(f"[error] convert failed for tile {global_tile}; aborting")
-                        if convert_proc.stdout:
-                            print(convert_proc.stdout)
-                        if convert_proc.stderr:
-                            print(convert_proc.stderr)
+                    try:
+                        convert_pcx_to_png8(local_pcx, out_png)
+                    except Exception as exc:
+                        print(f"[error] PCX->PNG conversion failed for tile {global_tile}; aborting")
+                        print(exc)
                         if out_png.exists():
                             out_png.unlink()
                         return 1

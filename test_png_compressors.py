@@ -9,6 +9,8 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+from duke3d_compact_grp import convert_pcx_to_png8
+
 PCX_DIR = Path("precalculated_pngs_shareware_1.3D")
 
 TILE_PCX = [
@@ -20,7 +22,6 @@ TILE_PCX = [
 ZOPFLI_ITERATIONS = 50
 OUTPUT_DIR = Path("png_test_outputs")
 
-CONVERT = shutil.which("convert")
 PNGQUANT = Path.home() / "software" / "pngquant"
 OPTIPNG = shutil.which("optipng")
 ZOPFLIPNG = shutil.which("zopflipng")
@@ -32,15 +33,6 @@ PNG_DIRS = {
     "pngquant_10": Path("precalculated_pngs_pngquant_10"),
 }
 
-BASE_CONVERT_ARGS = [
-    "-alpha", "on",
-    "-transparent", "#FC00FC",
-    "-strip",
-    "-define", "png:compression-level=9",
-    "-define", "png:compression-strategy=1",
-    "-define", "png:exclude-chunks=date,time",
-    "-colors", "256",
-]
 
 def run(cmd, desc=""):
     proc = subprocess.run(cmd, capture_output=True, text=True)
@@ -120,7 +112,7 @@ def find_prebuilt(tile_num):
     return results
 
 def main():
-    for tool in [CONVERT, PNGQUANT, OPTIPNG, ZOPFLIPNG]:
+    for tool in [PNGQUANT, OPTIPNG, ZOPFLIPNG]:
         if not tool or not Path(str(tool)).exists():
             print(f"ERROR: required tool not found: {tool}")
             sys.exit(1)
@@ -150,11 +142,10 @@ def main():
             print(f"  Pre-existing PNGs: " + ", ".join(f"{k}={v}B" for k, v in prebuilt.items()))
         print(f"{'='*70}")
 
-        # Baseline: convert only
+        # Baseline: palette-preserving PCX -> PNG conversion
         out_png = out_dir / "convert-only.PNG"
-        convert_cmd = [CONVERT, str(pcx_path)] + BASE_CONVERT_ARGS + [f"PNG8:{out_png}"]
-        proc = run(convert_cmd, "convert")
-        if proc.returncode == 0 and out_png.exists():
+        try:
+            convert_pcx_to_png8(pcx_path, out_png)
             sz = out_png.stat().st_size
             cols = get_colors(out_png)
             print(f"  {'convert-only':30s}  {sz:>8,} bytes  colors={cols}")
@@ -163,13 +154,15 @@ def main():
                 "final_bytes": sz, "colors": cols,
                 "savings_pct": (1 - sz / base_size) * 100,
             })
+        except Exception as e:
+            print(f"  [convert-only] conversion failed: {e}")
 
         for pname, steps in pipelines.items():
             out_png = out_dir / f"{pname}.PNG"
-            convert_cmd = [CONVERT, str(pcx_path)] + BASE_CONVERT_ARGS + [f"PNG8:{out_png}"]
-            proc = run(convert_cmd, "convert")
-            if proc.returncode != 0 or not out_png.exists():
-                print(f"  [{pname:30s}] CONVERT FAILED")
+            try:
+                convert_pcx_to_png8(pcx_path, out_png)
+            except Exception as e:
+                print(f"  [{pname:30s}] CONVERT FAILED: {e}")
                 continue
 
             for step_name in steps:
