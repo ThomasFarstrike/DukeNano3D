@@ -126,6 +126,8 @@ TILE0092.PNG,overrides/TILE0095.PNG,sky
 TILE0093.PNG,overrides/TILE0095.PNG,sky
 TILE0095.PNG,overrides/TILE0095.PNG,sky
 TILE2456.PNG,overrides/TILE1141.PNG,menu background
+TILE2492.PNG,precalculated_pngs_shareware_1.3D/TILE2492.PNG,title screen gradients dont handle dithering well
+TILE2493.PNG,precalculated_pngs_shareware_1.3D/TILE2493.PNG,title screen gradients dont handle dithering well
 EOF
 )
 
