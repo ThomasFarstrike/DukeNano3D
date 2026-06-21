@@ -156,7 +156,7 @@ PNGS=precalculated_pngs_shareware_1.3D/
 #PNGQUANTS=precalculated_pngs_pngquant_69-71_2/
 #PNGQUANTS=precalculated_pngs_pngquant_40-71_2/
 #PNGQUANTS=precalculated_pngs_full_1.3D_pngquant_40-71_2
-PNGQUANTS=precalculated_pngs_pngquant_40-71_2_iterations_500
+PNGQUANTS=precalculated_pngs_pngquant_40-71_2_iterations_500/
 
 
 # 4 levels, heavy compromise:
@@ -177,7 +177,7 @@ PNGQUANTS=precalculated_pngs_pngquant_40-71_2_iterations_500
 #zip -j -9 "$OUTPUT_DIR/E1L1-2_compromise_from_full.grp.zip" "$OUTPUT_DIR/E1L1-2_compromise_from_full.grp"
 #exit
 
-PNGQUANTS_AGRESSIVE=precalculated_pngs_pngquant_10_3/
+PNGQUANTS_AGRESSIVE=precalculated_pngs_pngquant_10_2_iterations_500/
 
 # All levels, complete but compressed audio and images:
 # See the end

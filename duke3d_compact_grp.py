@@ -2680,7 +2680,7 @@ def main():
                             zopflipng_iter_proc = subprocess.run(
                                 [
                                     str(zopflipng),
-                                    "--iterations=10", # 500 is better
+                                    "--iterations=500", # 500 is better
                                     "--filters=01234mepb",
                                     "--lossy_8bit",
                                     "--lossy_transparent",

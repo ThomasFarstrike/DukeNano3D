@@ -4,11 +4,14 @@
 #time python3 duke3d_compact_grp.py --ultraminimalmenu --zopflipng --keep-temp input/DUKE3D_v1.3d_shareware.grp --output outputs/DUKE3D_v1.3d_shareware_pngquant_40-71_2.grp
 #mv temp_folder/ precalculated_pngs_shareware_1.3D
 
+echo "Make sure iterations is set to 500 in duke3d_compact_grp.py"
+sleep 1
+
 time python3 duke3d_compact_grp.py --ultraminimalmenu --pngquant 40-71 --zopflipng --keep-temp input/DUKE3D_v1.3d_shareware.grp --output outputs/DUKE3D_v1.3d_shareware_pngquant_40-71_2.grp
 mv temp_folder/ precalculated_pngs_pngquant_40-71_2_iterations_500
 
 time python3 duke3d_compact_grp.py --ultraminimalmenu --pngquant 10 --zopflipng --keep-temp input/DUKE3D_v1.3d_shareware.grp --output outputs/DUKE3D_v1.3d_shareware_pngquant_10.grp
-mv temp_folder/ precalculated_pngs_pngquant_10
+mv temp_folder/ precalculated_pngs_pngquant_10_iterations_500
 
 # Full version test:
 #time python3 duke3d_compact_grp.py --ultraminimalmenu --pngquant 40-71 --zopflipng --keep-temp /home/user/ESP32_NES/duke3d/DUKE3D_v1.3d_full.grp --output outputs/DUKE3D_v1.3d_full_pngquant_40-71_2.grp

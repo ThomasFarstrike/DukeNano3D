@@ -9,21 +9,21 @@ Compact Duke Nukem 3D 1.3D Shareware `.grp` variants for constrained targets (e.
 | Version | Size (KiB) | Reduction in % | Size Zipped (KiB) | Reduction in % |
 | --- | --- | --- | --- | --- |
 | DUKE3D_v1.3d_shareware.grp | 10777.1 | 0% | 4729.2 | 56.12% |
-| E1L1-6.grp | 3788.6 | 64.85% | 2655.0 | 75.36% |
-| E1L1-6_nearcomplete.grp | 3594.6 | 66.65% | 2470.6 | 77.08% |
-| E1L1-6_compromise.grp | 3018.5 | 71.99% | 1961.3 | 81.80% |
-| E1L1-3_nearcomplete.grp | 2805.4 | 73.97% | 2072.7 | 80.77% |
-| E1L1-6_tiny.grp | 2691.7 | 75.02% | 1595.3 | 85.20% |
-| E1L1-2.grp | 2617.9 | 75.71% | 2026.0 | 81.20% |
-| E1L1-4_compromise.grp | 2543.9 | 76.40% | 1720.9 | 84.03% |
-| E1L1-4_heavycompromise.grp | 2502.0 | 76.78% | 1683.1 | 84.38% |
-| E1L1-2_nearcomplete.grp | 2460.2 | 77.17% | 1874.5 | 82.61% |
-| E1L1-3_compromise.grp | 2298.5 | 78.67% | 1627.2 | 84.90% |
-| E1L1.grp | 2254.2 | 79.08% | 1762.3 | 83.65% |
-| E1L1-2_compromise.grp | 1991.8 | 81.52% | 1465.0 | 86.41% |
-| E1L1_compromise.grp | 1687.6 | 84.34% | 1254.5 | 88.36% |
-| E1L1_tiny.grp | 1444.3 | 86.60% | 968.3 | 91.02% |
-| E1L1_minimal.grp | 1395.4 | 87.05% | 924.8 | 91.42% |
+| E1L1-6.grp | 3796.3 | 64.77% | 2663.5 | 75.29% |
+| E1L1-6_nearcomplete.grp | 3602.1 | 66.58% | 2477.7 | 77.01% |
+| E1L1-6_compromise.grp | 3022.0 | 71.96% | 1963.3 | 81.78% |
+| E1L1-3_nearcomplete.grp | 2811.6 | 73.91% | 2078.4 | 80.72% |
+| E1L1-2.grp | 2623.8 | 75.65% | 2032.7 | 81.14% |
+| E1L1-6_tiny.grp | 2611.5 | 75.77% | 1593.2 | 85.22% |
+| E1L1-4_compromise.grp | 2546.4 | 76.37% | 1722.3 | 84.02% |
+| E1L1-4_heavycompromise.grp | 2504.5 | 76.76% | 1684.8 | 84.37% |
+| E1L1-2_nearcomplete.grp | 2465.8 | 77.12% | 1879.9 | 82.56% |
+| E1L1-3_compromise.grp | 2300.9 | 78.65% | 1627.0 | 84.90% |
+| E1L1.grp | 2258.9 | 79.04% | 1767.6 | 83.60% |
+| E1L1-2_compromise.grp | 1993.3 | 81.50% | 1465.2 | 86.40% |
+| E1L1_compromise.grp | 1689.9 | 84.32% | 1255.9 | 88.35% |
+| E1L1_tiny.grp | 1363.3 | 87.35% | 964.3 | 91.05% |
+| E1L1_minimal.grp | 1314.5 | 87.80% | 921.2 | 91.45% |
 
 Notes:
 
