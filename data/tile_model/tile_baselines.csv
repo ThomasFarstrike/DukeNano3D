@@ -16,7 +16,7 @@ runtime_essential,0..60,map,Startup baseline tiles
 runtime_essential,FOOTPRINTS..FOOTPRINTS+2,map,Footprints
 runtime_essential,1233..1235,map,Runtime map-adjacent effects
 runtime_essential,TRANSPORTERBEAM..TRANSPORTERBEAM+5,map,Transporter beam frames
-runtime_essential,1332..1333,map,Avoid fallback to TILE1330
+runtime_essential,1331..1333,map,Avoid fallback to TILE1330
 runtime_essential,COOLEXPLOSION1..COOLEXPLOSION1+20,map,Cool explosion runtime span
 runtime_essential,1400..1527,map,Large reported missing runtime span
 runtime_essential,BLOOD..BLOOD+3,map,Blood effect sequence
